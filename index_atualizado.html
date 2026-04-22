@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentações</title>
+
+  <!-- Dependências Externas Blindadas (Links limpos e diretos) -->
+  <script src="https://cdn.tailwindcss.com?v=3.4.3" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Estilos CSS Externos -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Lógica JavaScript Externa -->
+  <script src="script.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-200">
+<div x-data="dashboard" class="min-h-screen relative flex flex-col">
+
+  <!-- CABEÇALHO GERAL -->
+  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur shadow-sm">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:py-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-3">
+        <img src="https://res.cloudinary.com/dbnyxxhe3/image/upload/v1772102800/02_Prancheta_1_ksm9oj.png" 
+             alt="Logo" 
+             class="h-8 sm:h-10 md:h-11 w-auto object-contain transition-all duration-300"
+             onerror="this.style.display='none'">
+        <div>
+          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-900">Documentações</h1>
+          <p class="text-xs sm:text-sm text-emerald-600 font-medium flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span> Conectado
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Botão Exportar Modal -->
+        <button @click="showExportModal = true"
+                title="Exportar dados atuais"
+                class="flex items-center gap-1.5 sm:gap-2 rounded-xl bg-slate-800 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white hover:bg-slate-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span class="hidden sm:inline">Exportar</span>
+        </button>
+
+        <!-- Botão Atualizar -->
+        <button @click="carregar()"
+                title="Atualizar painel"
+                class="rounded-xl border border-slate-200 bg-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-200 focus:ring-offset-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span class="hidden sm:inline">Atualizar</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ÁREA PRINCIPAL -->
+  <main class="mx-auto max-w-7xl w-full px-4 py-4 sm:py-6 sm:px-6 lg:px-8 flex-1">
+
+    <!-- Painel Visual de Erro -->
+    <template x-if="errorMessage">
+      <div class="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4 shadow-sm flex items-start gap-3 animate-fade-in">
+        <span class="text-xl">⚠️</span>
+        <div>
+          <h3 class="text-sm font-semibold text-rose-800">Erro de comunicação</h3>
+          <p class="text-sm text-rose-700 mt-1" x-text="errorMessage"></p>
+        </div>
+      </div>
+    </template>
+
+    <section class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <!-- Cartão: Resumo Geral -->
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col">
+        <div class="mb-4 flex items-center justify-between">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Resumo Geral</h2>
+          <span class="text-xs sm:text-sm text-slate-400 bg-slate-100 px-2 py-1 rounded-md" x-text="loading ? 'Carregando...' : `${stats.total} visíveis`"></span>
+        </div>
+
+        <div class="space-y-3 flex-1 flex flex-col justify-center">
+          <div @click="scrollToLista('')" title="Remover filtros" class="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors shadow-sm border border-slate-100/50">
+            <p class="font-medium text-sm sm:text-base text-slate-600">Total</p>
+            <p class="text-lg font-bold text-slate-800" x-text="stats.total"></p>
+          </div>
+          <div @click="scrollToLista('em_dia')" title="Filtrar Em dia" class="flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3 cursor-pointer hover:bg-emerald-100 transition-colors shadow-sm border border-emerald-100/50">
+            <p class="font-medium text-sm sm:text-base text-emerald-700">Em dia</p>
+            <p class="text-lg font-bold text-emerald-700" x-text="stats.emDia"></p>
+          </div>
+          <div @click="scrollToLista('vence_em_breve')" title="Filtrar Prestes a vencer" class="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3 cursor-pointer hover:bg-amber-100 transition-colors shadow-sm border border-amber-100/50">
+            <p class="font-medium text-sm sm:text-base text-amber-700">Prestes a vencer</p>
+            <p class="text-lg font-bold text-amber-700" x-text="stats.venceEmBreve"></p>
+          </div>
+          <div @click="scrollToLista('vencido')" title="Filtrar Vencidos" class="flex items-center justify-between rounded-xl bg-rose-50 px-4 py-3 cursor-pointer hover:bg-rose-100 transition-colors shadow-sm border border-rose-100/50">
+            <p class="font-medium text-sm sm:text-base text-rose-700">Vencidos</p>
+            <p class="text-lg font-bold text-rose-700" x-text="stats.vencido"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cartão: Tabela de Categorias -->
+      <div class="rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-100 bg-white z-20 flex justify-between items-center">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Por Categoria</h2>
+        </div>
+
+        <div class="flex-1 overflow-y-auto max-h-[320px]">
+          <table class="min-w-full text-sm text-left border-collapse">
+            <thead class="sticky top-0 bg-slate-50 border-b border-slate-200 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 z-10 shadow-sm">
+              <tr>
+                <th class="px-4 sm:px-5 py-3">Nome da Categoria</th>
+                <th class="px-2 py-3 text-center w-20 sm:w-24">Atrasado</th>
+                <th class="px-2 py-3 text-center w-20 sm:w-24">Breve</th>
+                <th class="px-4 py-3 text-center w-20 sm:w-24">OK</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <template x-for="item in resumoCategorias.sort((a, b) => b.vencido - a.vencido || b.venceEmBreve - a.venceEmBreve || b.emDia - a.emDia)" :key="item.categoria">
+                <tr class="hover:bg-slate-50 transition-colors group">
+                  <td class="px-4 sm:px-5 py-3">
+                    <p class="font-semibold text-sm sm:text-base text-slate-800 group-hover:text-blue-600 transition-colors" x-text="item.categoria"></p>
+                    <p class="text-xs text-slate-500 mt-0.5"><span x-text="item.total"></span> documento(s)</p>
+                  </td>
+                  <td class="px-2 py-3 text-center align-middle">
+                    <span class="inline-block px-2.5 py-1 rounded-md text-base sm:text-lg font-bold"
+                          :class="item.vencido > 0 ? 'bg-rose-100 text-rose-700' : 'text-slate-300'" x-text="item.vencido"></span>
+                  </td>
+                  <td class="px-2 py-3 text-center align-middle">
+                    <span class="inline-block px-2.5 py-1 rounded-md text-base sm:text-lg font-bold"
+                          :class="item.venceEmBreve > 0 ? 'bg-amber-100 text-amber-700' : 'text-slate-300'" x-text="item.venceEmBreve"></span>
+                  </td>
+                  <td class="px-4 py-3 text-center align-middle">
+                    <span class="inline-block px-2.5 py-1 rounded-md text-base sm:text-lg font-bold"
+                          :class="item.emDia > 0 ? 'bg-emerald-100 text-emerald-700' : 'text-slate-300'" x-text="item.emDia"></span>
+                  </td>
+                </tr>
+              </template>
+              <template x-if="resumoCategorias.length === 0">
+                 <tr><td colspan="4" class="text-center py-6 text-slate-400 italic">Nenhuma categoria encontrada.</td></tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filtros de Busca -->
+    <section class="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+        <div class="relative">
+          <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <input x-model="search" type="text" placeholder="Buscar documento, órgão..."
+                 class="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 text-sm outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all"/>
+        </div>
+
+        <select x-model="statusFilter" class="rounded-xl border border-slate-200 px-4 py-3 text-sm w-full outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all bg-white cursor-pointer">
+          <option value="">Todos os status</option>
+          <option value="vencido">Vencidos</option>
+          <option value="vence_em_breve">Prestes a vencer</option>
+          <option value="em_dia">Em dia / Vitalício</option>
+        </select>
+
+        <select x-model="categoriaFilter" class="rounded-xl border border-slate-200 px-4 py-3 text-sm w-full outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all bg-white cursor-pointer">
+          <option value="">Todas as categorias</option>
+          <template x-for="cat in categoriasUnicas" :key="cat">
+            <option :value="cat" x-text="cat"></option>
+          </template>
+        </select>
+
+        <button @click="limparFiltros()"
+                class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-200">
+          Limpar filtros
+        </button>
+      </div>
+    </section>
+
+    <!-- Tabela Principal (Desktop) & Cards (Mobile) -->
+    <section id="documentos-section" class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden scroll-mt-24">
+      <div class="border-b border-slate-200 px-4 sm:px-5 py-4 bg-slate-50/50">
+        <h2 class="text-base font-bold text-slate-800">Documentos Controlados</h2>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">
+          <strong>Clique no documento para detalhes.</strong>
+        </p>
+      </div>
+
+      <div class="hidden lg:block overflow-x-auto">
+        <table class="min-w-full text-sm text-left border-collapse">
+          <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px] font-bold">
+          <tr>
+            <th class="px-5 py-3.5">Apelido</th>
+            <th class="px-5 py-3.5">Órgão Expedidor</th>
+            <th class="px-5 py-3.5">Categoria</th>
+            <th class="px-5 py-3.5">Vencimento</th>
+            <th class="px-5 py-3.5">Dias</th>
+            <th class="px-5 py-3.5 text-center">Status</th>
+          </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+          <template x-for="doc in filteredDocumentos" :key="doc.id">
+            <tr @click="selected = doc"
+                class="cursor-pointer transition-colors hover:bg-slate-50 group">
+              <td class="px-5 py-4">
+                <div class="font-semibold text-slate-800 group-hover:text-blue-600 transition-colors" x-text="doc.apelido || '-'"></div>
+              </td>
+              <td class="px-5 py-4 text-slate-600" x-text="doc.orgao_expeditor || doc.orgaoExpeditor || '-'"></td>
+              <td class="px-5 py-4 text-slate-600" x-text="doc.categoria || '-'"></td>
+              <td class="px-5 py-4 text-slate-600" x-text="formatDate(doc.vencimento)"></td>
+              <td class="px-5 py-4">
+                <span :class="urgenciaDiasClass(doc)" x-text="formatDias(doc)"></span>
+              </td>
+              <td class="px-5 py-4 text-center">
+                <span class="inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide shadow-sm"
+                      :class="badgeClass(doc)"
+                      x-text="labelStatus(doc)">
+                </span>
+              </td>
+            </tr>
+          </template>
+          <template x-if="filteredDocumentos.length === 0">
+             <tr><td colspan="6" class="text-center py-10 text-slate-400 italic">Nenhum documento encontrado.</td></tr>
+          </template>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Versão Mobile (Cards) -->
+      <div class="p-4 lg:hidden bg-slate-50/30">
+        <div class="space-y-3">
+          <template x-for="doc in filteredDocumentos" :key="doc.id">
+            <div @click="selected = doc" 
+                 class="rounded-xl border border-slate-200 bg-white p-4 cursor-pointer transition-all hover:shadow-md hover:border-slate-300">
+              <div class="flex items-start justify-between gap-3 mb-2">
+                <div class="flex-1 pr-2">
+                  <p class="font-bold text-slate-800 leading-tight" x-text="doc.apelido || '-'"></p>
+                  <p class="text-xs text-slate-500 mt-1 line-clamp-1" x-text="doc.orgao_expeditor || doc.orgaoExpeditor || '-'"></p>
+                </div>
+                <span class="inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wide shadow-sm shrink-0 whitespace-nowrap"
+                      :class="badgeClass(doc)"
+                      x-text="labelStatus(doc)">
+                </span>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3 text-sm mt-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <div>
+                  <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Categoria</p>
+                  <p class="truncate font-medium text-slate-700" x-text="doc.categoria || '-'"></p>
+                </div>
+                <div>
+                  <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Dias Restantes</p>
+                  <p :class="urgenciaDiasClass(doc)" x-text="formatDiasTexto(doc)"></p>
+                </div>
+              </div>
+            </div>
+          </template>
+          <template x-if="filteredDocumentos.length === 0">
+             <div class="text-center py-8 text-slate-400 italic border-2 border-dashed border-slate-200 rounded-xl">Nenhum documento encontrado.</div>
+          </template>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL SECUNDÁRIO: EXPORTAÇÃO -->
+  <div x-show="showExportModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
+         x-show="showExportModal"
+         x-transition.opacity.duration.300ms
+         @click="showExportModal = false"></div>
+
+    <div class="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl overflow-hidden"
+         x-show="showExportModal"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 translate-y-8 sm:translate-y-0 sm:scale-95"
+         x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+         x-transition:leave-end="opacity-0 translate-y-8 sm:translate-y-0 sm:scale-95">
+      
+      <div class="mb-5 flex items-center justify-between">
+        <h3 class="text-lg font-bold text-slate-800">Exportar Relatório</h3>
+        <button @click="showExportModal = false" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors focus:outline-none">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+
+      <p class="mb-6 text-sm text-slate-500 leading-relaxed">Escolha o formato para partilhar o panorama atual do sistema:</p>
+
+      <div class="space-y-3">
+        <button @click="exportarCSV()" class="flex w-full items-center justify-center gap-2.5 rounded-xl bg-slate-800 px-4 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-slate-700 hover:shadow-lg active:scale-[0.98]">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+          Planilha Excel (.CSV)
+        </button>
+
+        <button @click="exportarWhatsApp()" class="flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#25D366] px-4 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[#1ebd5a] hover:shadow-lg active:scale-[0.98]">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>
+          Resumo no WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PRINCIPAL: DETALHES DO DOCUMENTO -->
+  <div x-show="selected" x-cloak class="fixed inset-0 z-40">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm touch-none" 
+         x-show="selected"
+         x-transition.opacity.duration.300ms
+         @click="selected = null"></div>
+
+    <aside class="absolute right-0 top-0 h-full w-full max-w-xl overflow-y-auto bg-white shadow-2xl flex flex-col overscroll-contain"
+           x-show="selected"
+           x-transition:enter="transform transition ease-out duration-300"
+           x-transition:enter-start="translate-x-full"
+           x-transition:enter-end="translate-x-0"
+           x-transition:leave="transform transition ease-in duration-200"
+           x-transition:leave-start="translate-x-0"
+           x-transition:leave-end="translate-x-full">
+           
+      <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 sm:px-6 py-4 sticky top-0 z-10 shadow-sm">
+        <div>
+          <h3 class="text-base sm:text-lg font-bold text-slate-800">Ficha do Documento</h3>
+          <p class="text-xs sm:text-sm text-slate-500 truncate mt-0.5" x-text="selected ? (selected.tipo_doc || selected.tipo_documento || selected.tipoDocumento || 'Sem tipo especificado') : '-'"></p>
+        </div>
+        <button @click="selected = null" class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:text-slate-900 hover:bg-slate-100 transition-all shadow-sm focus:outline-none">
+          <span>&larr;</span> Voltar
+        </button>
+      </div>
+
+      <div class="space-y-6 sm:space-y-8 p-4 sm:p-6 pb-20">
+        <!-- Secção 1: Cabeçalho do Ficha -->
+        <div>
+          <p class="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider mb-1" x-text="selected ? (selected.orgao_expeditor || selected.orgaoExpeditor || 'Órgão não informado') : '-'"></p>
+          <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight" x-text="selected ? (selected.documento || '-') : '-'"></p>
+          
+          <div class="flex flex-wrap items-center gap-3 mt-4">
+            <span class="inline-flex rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-bold shadow-sm uppercase tracking-wide border border-current"
+                  :class="badgeClass(selected)"
+                  x-text="labelStatus(selected)">
+            </span>
+            <span class="text-sm sm:text-base font-bold bg-slate-100 px-3 py-1.5 rounded-lg"
+               :class="urgenciaDiasClass(selected)"
+               x-text="formatDiasTexto(selected)"></span>
+          </div>
+        </div>
+
+        <!-- Secção 2: Prazos Críticos -->
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6 shadow-sm">
+          <h4 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2 border-b border-slate-200 pb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            Controle de Prazos
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Emissão</p>
+              <p class="font-bold text-slate-800 mt-1 text-base" x-text="formatDate(selected ? selected.emissao : null)"></p>
+            </div>
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Vencimento</p>
+              <p class="font-bold text-slate-800 mt-1 text-base" x-text="formatDate(selected ? selected.vencimento : null)"></p>
+            </div>
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Última Renovação</p>
+              <p class="font-medium text-slate-600 mt-1" x-text="formatDate(selected ? (selected.data_renovacao || selected.dataRenovacao) : null)"></p>
+            </div>
+            
+            <div class="relative bg-white border border-blue-100 rounded-lg p-3 shadow-sm group hover:border-blue-300 transition-colors">
+              <p class="text-[10px] font-bold uppercase tracking-wider text-blue-600 flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+                Agendar Renovação
+              </p>
+              <p class="font-black text-blue-700 mt-1 text-lg" x-text="formatDate(selected ? selected.data_sugerida_renovacao : null)"></p>
+              <p class="text-[10px] text-blue-500 mt-0.5 font-medium" x-text="'Aviso ' + (selected ? (selected.renova_antes || 0) : 0) + ' dias antes'"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Secção 3: Informação Base -->
+        <div>
+          <h4 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 border-b border-slate-200 pb-3">Informações de Registo</h4>
+          <div class="space-y-5">
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Categoria</p>
+              <span class="inline-flex rounded-lg bg-slate-100 border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm" x-text="selected ? (selected.categoria || 'Não classificado') : '-'"></span>
+            </div>
+
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Descrição Interna</p>
+              <p class="leading-relaxed text-slate-600 text-sm bg-white p-4 rounded-xl border border-slate-200 shadow-sm" x-text="selected ? (selected.descricao || 'Nenhuma descrição detalhada foi fornecida para este registo.') : 'Sem descrição cadastrada.'"></p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Acesso Externo / Site</p>
+                <template x-if="selected && selected.site">
+                  <a :href="selected.site" target="_blank" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 bg-blue-50 px-3 py-2 rounded-lg hover:text-blue-800 hover:bg-blue-100 transition-colors w-max max-w-full" title="Abrir ligação no navegador">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                    <span class="truncate" x-text="selected.site"></span>
+                  </a>
+                </template>
+                <template x-if="!selected || !selected.site">
+                  <p class="text-sm text-slate-400 italic bg-slate-50 px-3 py-2 rounded-lg border border-slate-100 inline-block">Nenhum link fornecido</p>
+                </template>
+              </div>
+
+              <div class="w-full overflow-hidden">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Diretório do Arquivo Físico</p>
+                <p class="text-sm font-mono text-slate-600 bg-slate-100 p-3 rounded-lg border border-slate-200 select-all block w-full overflow-x-auto whitespace-nowrap scrollbar-hide"
+                   :title="selected ? (selected.caminho_arquivo || selected.caminhoArquivo || 'Nenhum caminho mapeado') : 'Nenhum caminho mapeado'"
+                   x-text="selected ? (selected.caminho_arquivo || selected.caminhoArquivo || 'Não mapeado') : '-'"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+</div>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Documentação</title>
+  <title>Documentações</title>
 
   <!-- Dependências Externas Blindadas (Links limpos e diretos) -->
   <script src="https://cdn.tailwindcss.com?v=3.4.3" defer></script>
@@ -335,18 +335,14 @@
                   <p class="mt-1 text-xs text-slate-500" x-text="item.categoria || 'Sem categoria'"></p>
                 </div>
                 <span class="inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide shadow-sm whitespace-nowrap"
-                      :class="notificationBadgeClass(item.status_novo)"
-                      x-text="labelStatusValue(item.status_novo)"></span>
+                      :class="notificationBadgeClass(item.status_novo, item.tipo_evento)"
+                      x-text="labelNotificacaoBadge(item)"></span>
               </div>
 
               <div class="mt-4 grid grid-cols-1 gap-3 text-sm">
                 <div class="rounded-xl bg-slate-50 border border-slate-100 p-3">
-                  <p class="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Mudança detectada</p>
-                  <p class="font-medium text-slate-700">
-                    <span x-text="labelStatusValue(item.status_anterior)"></span>
-                    <span class="mx-1">→</span>
-                    <span x-text="labelStatusValue(item.status_novo)"></span>
-                  </p>
+                  <p class="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1" x-text="tituloNotificacao(item)"></p>
+                  <p class="font-medium text-slate-700" x-text="descricaoNotificacao(item)"></p>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">

@@ -37,6 +37,131 @@ document.addEventListener('alpine:init', () => {
       else document.body.classList.remove('overflow-hidden');
     },
 
+    getHojeNormalizado() {
+      const agora = new Date();
+      return new Date(Date.UTC(agora.getFullYear(), agora.getMonth(), agora.getDate()));
+    },
+
+    parseDateValue(dateValue) {
+      if (!dateValue) return null;
+
+      const valor = String(dateValue).trim();
+      if (!valor) return null;
+
+      const match = valor.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) {
+        const ano = Number(match[1]);
+        const mes = Number(match[2]) - 1;
+        const dia = Number(match[3]);
+        return new Date(Date.UTC(ano, mes, dia));
+      }
+
+      const parsed = new Date(valor);
+      if (Number.isNaN(parsed.getTime())) return null;
+
+      return new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
+    },
+
+    formatDateToISO(date) {
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+      const ano = date.getUTCFullYear();
+      const mes = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const dia = String(date.getUTCDate()).padStart(2, '0');
+      return `${ano}-${mes}-${dia}`;
+    },
+
+    diffInDays(startDate, endDate) {
+      if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime())) return null;
+      if (!(endDate instanceof Date) || Number.isNaN(endDate.getTime())) return null;
+
+      const millisecondsPerDay = 24 * 60 * 60 * 1000;
+      return Math.floor((endDate.getTime() - startDate.getTime()) / millisecondsPerDay);
+    },
+
+    getDiasAntecedencia(doc, vencimentoDate) {
+      const renovaAntesRaw = doc.renova_antes != null ? doc.renova_antes : doc.renovaAntes;
+      const renovaAntes = Number(renovaAntesRaw);
+
+      if (Number.isFinite(renovaAntes) && renovaAntes >= 0) {
+        return renovaAntes;
+      }
+
+      const dataSugerida = this.parseDateValue(doc.data_sugerida_renovacao || doc.dataSugeridaRenovacao);
+      if (dataSugerida && vencimentoDate) {
+        const diferenca = this.diffInDays(dataSugerida, vencimentoDate);
+        if (Number.isFinite(diferenca) && diferenca >= 0) {
+          return diferenca;
+        }
+      }
+
+      return 90;
+    },
+
+    getDataInicioAlerta(doc, vencimentoDate, diasAntecedencia) {
+      const dataSugerida = this.parseDateValue(doc.data_sugerida_renovacao || doc.dataSugeridaRenovacao);
+      if (dataSugerida) return dataSugerida;
+
+      if (!vencimentoDate || !Number.isFinite(diasAntecedencia)) return null;
+
+      const millisecondsPerDay = 24 * 60 * 60 * 1000;
+      return new Date(vencimentoDate.getTime() - (diasAntecedencia * millisecondsPerDay));
+    },
+
+    normalizarDocumentoPrazo(doc) {
+      const vencimentoRaw = doc.vencimento;
+      const isVitalicio = Boolean(vencimentoRaw && String(vencimentoRaw).includes('2999'));
+      const vencimentoDate = this.parseDateValue(vencimentoRaw);
+      const hoje = this.getHojeNormalizado();
+
+      doc.is_vitalicio = isVitalicio;
+
+      if (isVitalicio) {
+        doc.status_prazo = 'em_dia';
+        return doc;
+      }
+
+      const diasRestantesCalculados = vencimentoDate ? this.diffInDays(hoje, vencimentoDate) : null;
+      const diasRestantesOriginais = doc.dias_restantes != null ? doc.dias_restantes : doc.diasRestantes;
+      const diasRestantesNormalizados = Number.isFinite(diasRestantesCalculados) ? diasRestantesCalculados : diasRestantesOriginais;
+
+      if (diasRestantesNormalizados != null) {
+        doc.dias_restantes = diasRestantesNormalizados;
+        doc.diasRestantes = diasRestantesNormalizados;
+      }
+
+      const diasAntecedencia = this.getDiasAntecedencia(doc, vencimentoDate);
+      if (Number.isFinite(diasAntecedencia)) {
+        doc.renova_antes = diasAntecedencia;
+        doc.renovaAntes = diasAntecedencia;
+      }
+
+      const dataInicioAlerta = this.getDataInicioAlerta(doc, vencimentoDate, diasAntecedencia);
+      if (dataInicioAlerta && !doc.data_sugerida_renovacao && !doc.dataSugeridaRenovacao) {
+        const dataISO = this.formatDateToISO(dataInicioAlerta);
+        doc.data_sugerida_renovacao = dataISO;
+        doc.dataSugeridaRenovacao = dataISO;
+      }
+
+      if (Number.isFinite(diasRestantesCalculados)) {
+        if (diasRestantesCalculados < 0) {
+          doc.status_prazo = 'vencido';
+        } else if (dataInicioAlerta && hoje.getTime() >= dataInicioAlerta.getTime()) {
+          doc.status_prazo = 'vence_em_breve';
+        } else {
+          doc.status_prazo = 'em_dia';
+        }
+        return doc;
+      }
+
+      if (diasRestantesOriginais != null) {
+        if (diasRestantesOriginais < 0) doc.status_prazo = 'vencido';
+        else if (diasRestantesOriginais <= diasAntecedencia) doc.status_prazo = 'vence_em_breve';
+        else doc.status_prazo = 'em_dia';
+      }
+
+      return doc;
+    },
+
     async carregar() {
       this.loading = true;
       this.errorMessage = '';
@@ -47,26 +172,11 @@ document.addEventListener('alpine:init', () => {
         if (error) throw error;
 
         // Motor de Regras Matemáticas Avançadas
-        this.documentos = (data || []).map(doc => {
-          const dias = doc.dias_restantes != null ? doc.dias_restantes : doc.diasRestantes;
-
-          if (doc.vencimento && doc.vencimento.includes('2999')) {
-            doc.is_vitalicio = true;
-            doc.status_prazo = 'em_dia';
-          } else {
-            doc.is_vitalicio = false;
-            if (dias != null) {
-              if (dias < 0) doc.status_prazo = 'vencido';
-              else if (dias <= 90) doc.status_prazo = 'vence_em_breve';
-              else doc.status_prazo = 'em_dia';
-            }
-          }
-          return doc;
-        });
+        this.documentos = (data || []).map(doc => this.normalizarDocumentoPrazo(doc));
 
       } catch (e) {
         console.error('Falha na comunicação com Banco de Dados:', e.message);
-        this.errorMessage = e.message; 
+        this.errorMessage = e.message;
       } finally {
         this.loading = false;
       }
@@ -238,16 +348,26 @@ document.addEventListener('alpine:init', () => {
       if (!doc) return '-';
       if (doc.is_vitalicio) return 'Vitalício (Não vence)';
       const dias = doc.dias_restantes != null ? doc.dias_restantes : doc.diasRestantes;
-      return dias != null ? `${dias} dias restantes` : '-';
+      if (dias == null) return '-';
+      if (dias < 0) return `${Math.abs(dias)} dia(s) em atraso`;
+      if (dias === 0) return 'Vence hoje';
+      return `${dias} dias restantes`;
     },
 
     formatDate(date) {
       if (!date) return '-';
-      if (date.includes('2999')) return 'Vitalício';
-      // Corrige fusos horários garantindo que a data seja lida corretamente
-      const partes = date.split('-');
-      if(partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`;
-      return new Date(date + 'T00:00:00').toLocaleDateString('pt-BR');
+
+      const valor = String(date);
+      if (valor.includes('2999')) return 'Vitalício';
+
+      const parsed = this.parseDateValue(valor);
+      if (!parsed) return '-';
+
+      const dia = String(parsed.getUTCDate()).padStart(2, '0');
+      const mes = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+      const ano = parsed.getUTCFullYear();
+
+      return `${dia}/${mes}/${ano}`;
     }
   }));
 });

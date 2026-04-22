@@ -402,12 +402,12 @@
   
 <!-- MODAL PRINCIPAL: DETALHES DO DOCUMENTO -->
 <div x-show="selected" x-cloak class="fixed inset-0 z-40">
-  <div class="absolute inset-0 bg-slate-900/55 backdrop-blur-sm touch-none"
+  <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm touch-none"
        x-show="selected"
        x-transition.opacity.duration.300ms
        @click="selected = null"></div>
 
-  <aside class="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto bg-white shadow-2xl flex flex-col overscroll-contain"
+  <aside class="absolute right-0 top-0 h-full w-full max-w-[760px] overflow-y-auto bg-white shadow-2xl flex flex-col overscroll-contain border-l border-slate-200"
          x-show="selected"
          x-transition:enter="transform transition ease-out duration-300"
          x-transition:enter-start="translate-x-full"
@@ -418,130 +418,202 @@
 
     <div class="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div class="flex items-start justify-between gap-4 px-5 sm:px-7 py-5">
-        <div class="min-w-0">
-          <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Ficha do Documento</p>
-          <h3 class="mt-1 text-xl sm:text-2xl font-bold tracking-tight text-slate-900" x-text="selected ? (selected.apelido || selected.documento || '-') : '-'"></h3>
-          <p class="mt-1 text-sm text-slate-500 truncate" x-text="selected ? (selected.tipo_doc || selected.tipo_documento || selected.tipoDocumento || 'Sem tipo especificado') : '-'"></p>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2 text-slate-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75h7.086a2.25 2.25 0 011.591.659l2.164 2.164a2.25 2.25 0 01.659 1.591V19.5A2.25 2.25 0 0116.75 21.75h-9.5A2.25 2.25 0 015 19.5v-13.5A2.25 2.25 0 017.25 3.75z" />
+            </svg>
+            <p class="text-[11px] font-bold uppercase tracking-[0.2em]">Ficha do Documento</p>
+          </div>
+          <h3 class="mt-2 font-bold tracking-tight text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis"
+              :class="selected && (selected.apelido || selected.documento || '').length > 34 ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-3xl'"
+              :title="selected ? (selected.apelido || selected.documento || '-') : '-'"
+              x-text="selected ? (selected.apelido || selected.documento || '-') : '-'"></h3>
+          <p class="mt-1 text-sm text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis"
+             :title="selected ? (selected.tipo_doc || selected.tipo_documento || selected.tipoDocumento || 'Sem tipo especificado') : '-'"
+             x-text="selected ? (selected.tipo_doc || selected.tipo_documento || selected.tipoDocumento || 'Sem tipo especificado') : '-'"></p>
         </div>
+
         <button type="button" @click="selected = null"
-                class="shrink-0 inline-flex items-center gap-2 border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 transition-colors">
+                class="shrink-0 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-900 hover:shadow-md">
           <span>&larr;</span>
           <span>Voltar</span>
         </button>
       </div>
     </div>
 
-    <div class="px-5 sm:px-7 py-6 sm:py-7 space-y-8">
-      <section class="border-b border-slate-200 pb-6 sm:pb-7">
+    <div class="px-5 sm:px-7 py-6 sm:py-7 space-y-6">
+      <section class="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 sm:p-6 shadow-sm">
         <div class="space-y-4">
           <div>
-            <p class="text-xs sm:text-sm font-semibold uppercase tracking-[0.16em] text-slate-400"
+            <p class="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis"
+               :title="selected ? (selected.orgao_expeditor || selected.orgaoExpeditor || 'Órgão não informado') : '-'"
                x-text="selected ? (selected.orgao_expeditor || selected.orgaoExpeditor || 'Órgão não informado') : '-'"></p>
-            <p class="mt-2 text-3xl sm:text-4xl font-black tracking-tight text-slate-950 break-words"
+            <p class="mt-2 font-black tracking-tight text-slate-950 whitespace-nowrap overflow-hidden text-ellipsis"
+               :class="selected && (selected.documento || '').length > 28 ? 'text-3xl sm:text-4xl' : 'text-4xl sm:text-5xl'"
+               :title="selected ? (selected.documento || '-') : '-'"
                x-text="selected ? (selected.documento || '-') : '-'"></p>
           </div>
 
           <div class="flex flex-wrap items-center gap-3">
-            <span class="inline-flex px-3 py-1.5 text-sm font-semibold border"
+            <span class="inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold shadow-sm transition-all"
                   :class="badgeClass(selected)"
                   x-text="labelStatus(selected)">
             </span>
-            <span class="inline-flex px-3 py-1.5 text-sm font-semibold bg-slate-100 text-slate-700 border border-slate-200"
+
+            <span class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm"
                   :class="urgenciaDiasClass(selected)"
                   x-text="formatDiasTexto(selected)">
             </span>
+
             <template x-if="selected && selected.categoria">
-              <span class="inline-flex px-3 py-1.5 text-sm font-medium bg-white text-slate-600 border border-slate-200"
+              <span class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm font-medium text-slate-600 shadow-sm whitespace-nowrap"
                     x-text="selected.categoria"></span>
             </template>
           </div>
         </div>
       </section>
 
-      <section class="space-y-4">
-        <div class="flex items-center gap-3">
-          <div class="h-px flex-1 bg-slate-200"></div>
-          <h4 class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Controle de prazos</h4>
-          <div class="h-px flex-1 bg-slate-200"></div>
+      <section class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
+        <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+          <div class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold uppercase tracking-[0.18em] text-slate-500">Controle de Prazos</h4>
+            <p class="text-xs text-slate-400">Leitura rápida das datas principais</p>
+          </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="border border-slate-200 p-4">
-            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Emissão</p>
-            <p class="mt-3 text-2xl font-bold tracking-tight text-slate-900"
+        <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm transition-all hover:shadow-md">
+            <div class="flex items-center gap-2 text-slate-400">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10" />
+              </svg>
+              <p class="text-[11px] font-bold uppercase tracking-[0.18em]">Emissão</p>
+            </div>
+            <p class="mt-3 text-2xl font-bold tracking-tight text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis"
                x-text="formatDate(selected ? selected.emissao : null)"></p>
           </div>
 
-          <div class="border border-slate-200 p-4">
-            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Vencimento</p>
-            <p class="mt-3 text-2xl font-bold tracking-tight text-slate-900"
+          <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm transition-all hover:shadow-md">
+            <div class="flex items-center gap-2 text-slate-400">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+              <p class="text-[11px] font-bold uppercase tracking-[0.18em]">Vencimento</p>
+            </div>
+            <p class="mt-3 text-2xl font-bold tracking-tight text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis"
                x-text="formatDate(selected ? selected.vencimento : null)"></p>
           </div>
 
-          <div class="border border-slate-200 p-4">
-            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Última Renovação</p>
-            <p class="mt-3 text-xl font-semibold tracking-tight text-slate-700"
+          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md">
+            <div class="flex items-center gap-2 text-slate-400">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
+              </svg>
+              <p class="text-[11px] font-bold uppercase tracking-[0.18em]">Última Renovação</p>
+            </div>
+            <p class="mt-3 text-xl font-semibold tracking-tight text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis"
                x-text="formatDate(selected ? (selected.data_renovacao || selected.dataRenovacao) : null)"></p>
           </div>
 
-          <div class="border border-slate-200 p-4 bg-slate-50">
-            <div class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+          <div class="rounded-xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm transition-all hover:shadow-md">
+            <div class="flex items-center gap-2 text-blue-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
               </svg>
-              <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-blue-700">Agendar Renovação</p>
+              <p class="text-[11px] font-bold uppercase tracking-[0.18em]">Agendar Renovação</p>
             </div>
-            <p class="mt-3 text-2xl font-black tracking-tight text-blue-700"
+            <p class="mt-3 text-2xl font-black tracking-tight text-blue-700 whitespace-nowrap overflow-hidden text-ellipsis"
                x-text="formatDate(selected ? selected.data_sugerida_renovacao : null)"></p>
-            <p class="mt-2 text-sm font-medium text-blue-600"
+            <p class="mt-1 text-xs font-medium text-blue-500 whitespace-nowrap overflow-hidden text-ellipsis"
                x-text="'Aviso ' + (selected ? (selected.renova_antes || 0) : 0) + ' dias antes'"></p>
           </div>
         </div>
       </section>
 
-      <section class="space-y-4">
-        <div class="flex items-center gap-3">
-          <div class="h-px flex-1 bg-slate-200"></div>
-          <h4 class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Informações de registo</h4>
-          <div class="h-px flex-1 bg-slate-200"></div>
+      <section class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
+        <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+          <div class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M5 19h14a2 2 0 002-2V7" />
+            </svg>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold uppercase tracking-[0.18em] text-slate-500">Informações de Registo</h4>
+            <p class="text-xs text-slate-400">Dados complementares do documento</p>
+          </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          <div class="lg:col-span-4 space-y-4">
-            <div class="border border-slate-200 p-4">
-              <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Categoria</p>
-              <div class="mt-3 inline-flex px-3 py-2 text-sm font-semibold text-slate-700 bg-slate-50 border border-slate-200"
-                   x-text="selected ? (selected.categoria || 'Não classificado') : '-'"></div>
+        <div class="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="space-y-5">
+            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 shadow-sm">
+              <div class="flex items-center gap-2 text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10M7 12h10M7 17h6" />
+                </svg>
+                <p class="text-[11px] font-bold uppercase tracking-[0.18em]">Categoria</p>
+              </div>
+              <p class="mt-3 inline-flex max-w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis shadow-sm"
+                 :title="selected ? (selected.categoria || 'Não classificado') : '-'"
+                 x-text="selected ? (selected.categoria || 'Não classificado') : '-'"></p>
             </div>
 
-            <div class="border border-slate-200 p-4">
-              <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Acesso Externo / Site</p>
-              <template x-if="selected && selected.site">
-                <a :href="selected.site" target="_blank"
-                   class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-blue-700 hover:text-blue-900 transition-colors break-all"
-                   title="Abrir ligação no navegador">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                  <span class="underline underline-offset-2" x-text="selected.site"></span>
-                </a>
-              </template>
-              <template x-if="!selected || !selected.site">
-                <p class="mt-3 text-sm text-slate-400 italic">Nenhum link fornecido</p>
-              </template>
+            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 shadow-sm">
+              <div class="flex items-center gap-2 text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14 3h7m0 0v7m0-7L10 14" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 5h5v5H5zM5 14h5v5H5z" />
+                </svg>
+                <p class="text-[11px] font-bold uppercase tracking-[0.18em]">Acesso Externo / Site</p>
+              </div>
+
+              <div class="mt-3">
+                <template x-if="selected && selected.site">
+                  <a :href="selected.site" target="_blank"
+                     class="inline-flex max-w-full items-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-medium text-blue-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800"
+                     title="Abrir ligação no navegador">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H19m0 0v5.5m0-5.5L10 15" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 7.5h3m-3 0A2.25 2.25 0 005.25 9.75v8.5A2.25 2.25 0 007.5 20.5h8.5a2.25 2.25 0 002.25-2.25v-3" />
+                    </svg>
+                    <span class="truncate" x-text="selected.site"></span>
+                  </a>
+                </template>
+                <template x-if="!selected || !selected.site">
+                  <p class="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400 shadow-sm">Nenhum link fornecido</p>
+                </template>
+              </div>
             </div>
           </div>
 
-          <div class="lg:col-span-8 space-y-4">
-            <div class="border border-slate-200 p-4">
-              <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Descrição Interna</p>
-              <p class="mt-3 text-sm leading-7 text-slate-700"
+          <div class="space-y-5">
+            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 shadow-sm">
+              <div class="flex items-center gap-2 text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6M9 16h6M9 8h6M5 5h14v14H5z" />
+                </svg>
+                <p class="text-[11px] font-bold uppercase tracking-[0.18em]">Descrição Interna</p>
+              </div>
+              <p class="mt-3 text-sm leading-relaxed text-slate-600 bg-white border border-slate-200 p-4 rounded-lg shadow-sm"
                  x-text="selected ? (selected.descricao || 'Nenhuma descrição detalhada foi fornecida para este registo.') : 'Sem descrição cadastrada.'"></p>
             </div>
 
-            <div class="border border-slate-200 p-4">
-              <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Diretório do Arquivo Físico</p>
-              <p class="mt-3 text-sm font-mono text-slate-600 leading-6 break-all"
+            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 shadow-sm">
+              <div class="flex items-center gap-2 text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5l9-4 9 4-9 4-9-4z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.5l-9 4-9-4" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 17.5l-9 4-9-4" />
+                </svg>
+                <p class="text-[11px] font-bold uppercase tracking-[0.18em]">Diretório do Arquivo Físico</p>
+              </div>
+              <p class="mt-3 text-sm font-mono text-slate-600 bg-white border border-slate-200 p-4 rounded-lg shadow-sm overflow-x-auto whitespace-nowrap"
                  :title="selected ? (selected.caminho_arquivo || selected.caminhoArquivo || 'Nenhum caminho mapeado') : 'Nenhum caminho mapeado'"
                  x-text="selected ? (selected.caminho_arquivo || selected.caminhoArquivo || 'Não mapeado') : '-'"></p>
             </div>
@@ -552,5 +624,6 @@
   </aside>
 </div>
 
+</div>
 </body>
 </html>

@@ -370,52 +370,48 @@ document.addEventListener('alpine:init', () => {
       return '-';
     },
 
-    notificationBadgeClass(status, tipoEvento) {
-      if (tipoEvento === 'vence_hoje') return 'bg-amber-100 text-amber-700';
-      if (status === 'vencido') return 'bg-rose-100 text-rose-700';
-      if (status === 'vence_em_breve') return 'bg-amber-100 text-amber-700';
-      return 'bg-slate-100 text-slate-700';
-    },
-
-    labelNotificacaoBadge(item) {
-      if (!item) return '-';
-      if (item.tipo_evento === 'vence_hoje') return 'Vence hoje';
-      return this.labelStatusValue(item.status_novo);
-    },
-
-    tituloNotificacao(item) {
-      if (!item) return 'Mudança detectada';
-      if (item.tipo_evento === 'vence_hoje') return 'Alerta do dia';
-      return 'Mudança detectada';
-    },
-
-    descricaoNotificacao(item) {
+    textoNotificacaoRapida(item) {
       if (!item) return '-';
       if (item.tipo_evento === 'vence_hoje') return 'Hoje é o último dia para renovação deste documento.';
-      return `${this.labelStatusValue(item.status_anterior)} → ${this.labelStatusValue(item.status_novo)}`;
+
+      const statusAnterior = this.labelStatusValue(item.status_anterior);
+      const statusNovo = this.labelStatusValue(item.status_novo);
+
+      if (statusAnterior !== '-' && statusNovo !== '-' && statusAnterior !== statusNovo) {
+        return `Mudou de ${statusAnterior} para ${statusNovo}.`;
+      }
+
+      if (statusNovo !== '-') {
+        return `Status alterado para ${statusNovo}.`;
+      }
+
+      return 'O status deste documento foi atualizado.';
     },
 
-    formatDateTime(dateValue) {
-      const parsed = this.parseDateTime(dateValue);
-      if (!parsed) return '-';
+    async openNotificationDocument(item) {
+      if (!item || !item.documento_id) return;
 
-      return parsed.toLocaleString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    },
+      let documento = this.documentos.find((doc) => String(doc.id) === String(item.documento_id));
 
-    formatDiasNotificacao(item) {
-      if (!item || item.dias_restantes == null || item.dias_restantes === '') return '-';
+      if (!documento && supabaseClient) {
+        try {
+          const { data, error } = await supabaseClient
+            .from('vw_documentos_status')
+            .select('*')
+            .eq('id', item.documento_id)
+            .maybeSingle();
 
-      const dias = Number(item.dias_restantes);
-      if (Number.isNaN(dias)) return '-';
-      if (dias === 0) return 'Vence hoje';
-      if (dias < 0) return `${Math.abs(dias)} dia(s) em atraso`;
-      return `${dias} dia(s) restantes`;
+          if (error) throw error;
+          if (data) documento = this.normalizarDocumento(data);
+        } catch (e) {
+          console.error('Falha ao abrir documento a partir da notificação:', e.message);
+        }
+      }
+
+      if (!documento) return;
+
+      this.closeNotificationsPanel();
+      this.selected = documento;
     },
 
     // --- HELPERS DE UI RESPONSIVA ---

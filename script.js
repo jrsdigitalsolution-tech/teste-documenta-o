@@ -78,7 +78,7 @@ document.addEventListener('alpine:init', () => {
       try {
         const { data, error } = await supabaseClient
           .from('notificacoes_documentos')
-          .select('id, documento_id, apelido, documento, categoria, status_anterior, status_novo, dias_restantes, vencimento, renova_antes, data_sugerida_renovacao, data_evento')
+          .select('id, documento_id, apelido, documento, categoria, tipo_evento, status_anterior, status_novo, dias_restantes, vencimento, renova_antes, data_sugerida_renovacao, data_evento')
           .gte('data_evento', this.notificationsSinceIso())
           .order('data_evento', { ascending: false });
 
@@ -370,10 +370,29 @@ document.addEventListener('alpine:init', () => {
       return '-';
     },
 
-    notificationBadgeClass(status) {
+    notificationBadgeClass(status, tipoEvento) {
+      if (tipoEvento === 'vence_hoje') return 'bg-amber-100 text-amber-700';
       if (status === 'vencido') return 'bg-rose-100 text-rose-700';
       if (status === 'vence_em_breve') return 'bg-amber-100 text-amber-700';
       return 'bg-slate-100 text-slate-700';
+    },
+
+    labelNotificacaoBadge(item) {
+      if (!item) return '-';
+      if (item.tipo_evento === 'vence_hoje') return 'Vence hoje';
+      return this.labelStatusValue(item.status_novo);
+    },
+
+    tituloNotificacao(item) {
+      if (!item) return 'Mudança detectada';
+      if (item.tipo_evento === 'vence_hoje') return 'Alerta do dia';
+      return 'Mudança detectada';
+    },
+
+    descricaoNotificacao(item) {
+      if (!item) return '-';
+      if (item.tipo_evento === 'vence_hoje') return 'Hoje é o último dia para renovação deste documento.';
+      return `${this.labelStatusValue(item.status_anterior)} → ${this.labelStatusValue(item.status_novo)}`;
     },
 
     formatDateTime(dateValue) {

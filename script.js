@@ -28,12 +28,14 @@ document.addEventListener('alpine:init', () => {
     showExportModal: false,
     showNotificationsPanel: false,
     notificationsCount: 0,
+    notificationsReadIds: [],
 
     async init() {
       this.$watch('selected', () => this.atualizarBloqueioScroll());
       this.$watch('showExportModal', () => this.atualizarBloqueioScroll());
       this.$watch('showNotificationsPanel', () => this.atualizarBloqueioScroll());
 
+      this.carregarIdsNotificacoesLidas();
       await this.carregar();
     },
 
@@ -51,6 +53,53 @@ document.addEventListener('alpine:init', () => {
       base.setMonth(base.getMonth() - 3);
       base.setHours(0, 0, 0, 0);
       return base.toISOString();
+    },
+
+    notificationsReadStorageKey() {
+      return 'documentacoes_notifications_read_ids_v1';
+    },
+
+    carregarIdsNotificacoesLidas() {
+      try {
+        const raw = window.localStorage.getItem(this.notificationsReadStorageKey());
+        const parsed = raw ? JSON.parse(raw) : [];
+        this.notificationsReadIds = Array.isArray(parsed) ? parsed.map((id) => String(id)) : [];
+      } catch (e) {
+        this.notificationsReadIds = [];
+      }
+    },
+
+    salvarIdsNotificacoesLidas() {
+      try {
+        window.localStorage.setItem(
+          this.notificationsReadStorageKey(),
+          JSON.stringify(this.notificationsReadIds)
+        );
+      } catch (e) {
+        console.warn('Falha ao guardar notificações lidas localmente:', e.message);
+      }
+    },
+
+    notificacaoJaLida(item) {
+      if (!item || item.id == null) return false;
+      return this.notificationsReadIds.includes(String(item.id));
+    },
+
+    marcarNotificacaoComoLida(item) {
+      if (!item || item.id == null) return;
+
+      const id = String(item.id);
+      if (!this.notificationsReadIds.includes(id)) {
+        this.notificationsReadIds = [...this.notificationsReadIds, id];
+        this.salvarIdsNotificacoesLidas();
+      }
+
+      this.atualizarContadorNotificacoes();
+    },
+
+    atualizarContadorNotificacoes() {
+      const unreadCount = this.notificacoes.filter((item) => !this.notificacaoJaLida(item)).length;
+      this.notificationsCount = unreadCount;
     },
 
     async sincronizarNotificacoes() {
@@ -85,7 +134,11 @@ document.addEventListener('alpine:init', () => {
         if (error) throw error;
 
         this.notificacoes = data || [];
-        this.notificationsCount = this.notificacoes.length;
+
+        const notificationIds = new Set(this.notificacoes.map((item) => String(item.id)));
+        this.notificationsReadIds = this.notificationsReadIds.filter((id) => notificationIds.has(id));
+        this.salvarIdsNotificacoesLidas();
+        this.atualizarContadorNotificacoes();
       } catch (e) {
         console.error('Falha ao carregar notificações:', e.message);
         this.notificationsErrorMessage = e.message;
@@ -138,6 +191,19 @@ document.addEventListener('alpine:init', () => {
       if (Number.isNaN(parsed.getTime())) return null;
 
       return parsed;
+    },
+
+    formatNotificationDate(dateValue) {
+      const parsed = this.parseDateTime(dateValue);
+      if (!parsed) return '-';
+
+      return parsed.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     },
 
     todayDate() {
@@ -402,7 +468,14 @@ document.addEventListener('alpine:init', () => {
             .maybeSingle();
 
           if (error) throw error;
-          if (data) documento = this.normalizarDocumento(data);
+          if (data) {
+            documento = this.normalizarDocumento(data);
+
+            const jaExiste = this.documentos.some((doc) => String(doc.id) === String(item.documento_id));
+            if (!jaExiste) {
+              this.documentos = [documento, ...this.documentos];
+            }
+          }
         } catch (e) {
           console.error('Falha ao abrir documento a partir da notificação:', e.message);
         }
@@ -410,7 +483,10 @@ document.addEventListener('alpine:init', () => {
 
       if (!documento) return;
 
-      this.closeNotificationsPanel();
+      this.marcarNotificacaoComoLida(item);
+      this.showNotificationsPanel = false;
+
+      await this.$nextTick();
       this.selected = documento;
     },
 

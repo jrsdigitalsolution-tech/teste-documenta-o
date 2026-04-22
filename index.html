@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Documentações</title>
+  <title>Documentação</title>
 
   <!-- Dependências Externas Blindadas (Links limpos e diretos) -->
   <script src="https://cdn.tailwindcss.com?v=3.4.3" defer></script>
@@ -36,7 +36,7 @@
 
       <div class="flex items-center gap-2 sm:gap-3">
         <!-- Botão Notificações -->
-        <button @click="toggleNotificationsPanel()"
+        <button type="button" @click="toggleNotificationsPanel()"
                 title="Notificações"
                 class="relative flex items-center gap-1.5 sm:gap-2 rounded-xl border border-slate-200 bg-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-200 focus:ring-offset-2">
           <span x-show="notificationsCount > 0" x-cloak
@@ -49,7 +49,7 @@
         </button>
 
         <!-- Botão Exportar Modal -->
-        <button @click="showExportModal = true"
+        <button type="button" @click="showExportModal = true"
                 title="Exportar dados atuais"
                 class="flex items-center gap-1.5 sm:gap-2 rounded-xl bg-slate-800 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white hover:bg-slate-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -59,7 +59,7 @@
         </button>
 
         <!-- Botão Atualizar -->
-        <button @click="carregar()"
+        <button type="button" @click="carregar()"
                 title="Atualizar painel"
                 class="rounded-xl border border-slate-200 bg-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-200 focus:ring-offset-2">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -182,7 +182,7 @@
           </template>
         </select>
 
-        <button @click="limparFiltros()"
+        <button type="button" @click="limparFiltros()"
                 class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-200">
           Limpar filtros
         </button>
@@ -296,11 +296,7 @@
           <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Alterações registradas nos últimos 3 meses</p>
         </div>
         <div class="flex items-center gap-2">
-          <button @click="carregarNotificacoes()"
-                  class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors shadow-sm focus:outline-none">
-            Atualizar
-          </button>
-          <button @click="closeNotificationsPanel()"
+          <button type="button" @click="closeNotificationsPanel()"
                   class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors focus:outline-none">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -400,7 +396,7 @@
       
       <div class="mb-5 flex items-center justify-between">
         <h3 class="text-lg font-bold text-slate-800">Exportar Relatório</h3>
-        <button @click="showExportModal = false" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors focus:outline-none">
+        <button type="button" @click="showExportModal = false" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors focus:outline-none">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       </div>
@@ -408,12 +404,12 @@
       <p class="mb-6 text-sm text-slate-500 leading-relaxed">Escolha o formato para partilhar o panorama atual do sistema:</p>
 
       <div class="space-y-3">
-        <button @click="exportarCSV()" class="flex w-full items-center justify-center gap-2.5 rounded-xl bg-slate-800 px-4 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-slate-700 hover:shadow-lg active:scale-[0.98]">
+        <button type="button" @click="exportarCSV()" class="flex w-full items-center justify-center gap-2.5 rounded-xl bg-slate-800 px-4 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-slate-700 hover:shadow-lg active:scale-[0.98]">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
           Planilha Excel (.CSV)
         </button>
 
-        <button @click="exportarWhatsApp()" class="flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#25D366] px-4 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[#1ebd5a] hover:shadow-lg active:scale-[0.98]">
+        <button type="button" @click="exportarWhatsApp()" class="flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#25D366] px-4 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[#1ebd5a] hover:shadow-lg active:scale-[0.98]">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>
           Resumo no WhatsApp
         </button>
@@ -442,7 +438,7 @@
           <h3 class="text-base sm:text-lg font-bold text-slate-800">Ficha do Documento</h3>
           <p class="text-xs sm:text-sm text-slate-500 truncate mt-0.5" x-text="selected ? (selected.tipo_doc || selected.tipo_documento || selected.tipoDocumento || 'Sem tipo especificado') : '-'"></p>
         </div>
-        <button @click="selected = null" class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:text-slate-900 hover:bg-slate-100 transition-all shadow-sm focus:outline-none">
+        <button type="button" @click="selected = null" class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:text-slate-900 hover:bg-slate-100 transition-all shadow-sm focus:outline-none">
           <span>&larr;</span> Voltar
         </button>
       </div>

@@ -102,6 +102,38 @@ document.addEventListener('alpine:init', () => {
       this.notificationsCount = unreadCount;
     },
 
+    notificationItemClass(item) {
+      if (this.notificacaoJaLida(item)) {
+        return 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md focus:ring-slate-200';
+      }
+
+      return 'border-blue-200 bg-blue-50/80 hover:border-blue-300 hover:shadow-md focus:ring-blue-200';
+    },
+
+    notificationIconWrapClass(item) {
+      if (this.notificacaoJaLida(item)) {
+        return 'bg-slate-100 text-slate-500';
+      }
+
+      return 'bg-blue-100 text-blue-700';
+    },
+
+    notificationIconClass(item) {
+      return this.notificacaoJaLida(item) ? 'text-slate-500' : 'text-blue-700';
+    },
+
+    notificationTitleClass(item) {
+      return this.notificacaoJaLida(item) ? 'text-slate-800' : 'text-slate-900';
+    },
+
+    notificationTextClass(item) {
+      return this.notificacaoJaLida(item) ? 'text-slate-600' : 'text-slate-700';
+    },
+
+    notificationDateClass(item) {
+      return this.notificacaoJaLida(item) ? 'text-slate-400' : 'text-blue-600 font-medium';
+    },
+
     async sincronizarNotificacoes() {
       if (!supabaseClient) return null;
 

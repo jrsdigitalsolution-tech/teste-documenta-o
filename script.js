@@ -16,25 +16,96 @@ try {
 document.addEventListener('alpine:init', () => {
   Alpine.data('dashboard', () => ({
     documentos: [],
+    notificacoes: [],
     loading: false,
+    notificationsLoading: false,
     errorMessage: '',
+    notificationsErrorMessage: '',
     search: '',
     statusFilter: '',
     categoriaFilter: '',
     selected: null,
     showExportModal: false,
+    showNotificationsPanel: false,
+    notificationsCount: 0,
 
     async init() {
-      // Bloqueia o scroll da página quando qualquer modal (detalhes ou exportação) está aberto
-      this.$watch('selected', (val) => this.toggleScrollLock(val || this.showExportModal));
-      this.$watch('showExportModal', (val) => this.toggleScrollLock(val || this.selected));
+      this.$watch('selected', () => this.atualizarBloqueioScroll());
+      this.$watch('showExportModal', () => this.atualizarBloqueioScroll());
+      this.$watch('showNotificationsPanel', () => this.atualizarBloqueioScroll());
 
       await this.carregar();
+    },
+
+    atualizarBloqueioScroll() {
+      this.toggleScrollLock(!!(this.selected || this.showExportModal || this.showNotificationsPanel));
     },
 
     toggleScrollLock(isLocked) {
       if (isLocked) document.body.classList.add('overflow-hidden');
       else document.body.classList.remove('overflow-hidden');
+    },
+
+    notificationsSinceIso() {
+      const base = this.todayDate();
+      base.setMonth(base.getMonth() - 3);
+      base.setHours(0, 0, 0, 0);
+      return base.toISOString();
+    },
+
+    async sincronizarNotificacoes() {
+      if (!supabaseClient) return null;
+
+      try {
+        this.notificationsErrorMessage = '';
+
+        const { data, error } = await supabaseClient.rpc('sincronizar_notificacoes_documentos');
+        if (error) throw error;
+
+        return data || null;
+      } catch (e) {
+        console.error('Falha ao sincronizar notificações:', e.message);
+        this.notificationsErrorMessage = e.message;
+        return null;
+      }
+    },
+
+    async carregarNotificacoes() {
+      if (!supabaseClient) return;
+
+      this.notificationsLoading = true;
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('notificacoes_documentos')
+          .select('id, documento_id, apelido, documento, categoria, status_anterior, status_novo, dias_restantes, vencimento, renova_antes, data_sugerida_renovacao, data_evento')
+          .gte('data_evento', this.notificationsSinceIso())
+          .order('data_evento', { ascending: false });
+
+        if (error) throw error;
+
+        this.notificacoes = data || [];
+        this.notificationsCount = this.notificacoes.length;
+      } catch (e) {
+        console.error('Falha ao carregar notificações:', e.message);
+        this.notificationsErrorMessage = e.message;
+      } finally {
+        this.notificationsLoading = false;
+      }
+    },
+
+    async toggleNotificationsPanel() {
+      if (this.showNotificationsPanel) {
+        this.showNotificationsPanel = false;
+        return;
+      }
+
+      this.showNotificationsPanel = true;
+      await this.carregarNotificacoes();
+    },
+
+    closeNotificationsPanel() {
+      this.showNotificationsPanel = false;
     },
 
     parseDate(dateValue) {
@@ -58,6 +129,15 @@ document.addEventListener('alpine:init', () => {
       if (Number.isNaN(parsed.getTime())) return null;
 
       return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+    },
+
+    parseDateTime(dateValue) {
+      if (!dateValue) return null;
+
+      const parsed = new Date(dateValue);
+      if (Number.isNaN(parsed.getTime())) return null;
+
+      return parsed;
     },
 
     todayDate() {
@@ -139,6 +219,8 @@ document.addEventListener('alpine:init', () => {
       try {
         if (!supabaseClient) throw new Error("Cliente Supabase não configurado.");
 
+        await this.sincronizarNotificacoes();
+
         const { data, error } = await supabaseClient
           .from('vw_documentos_status')
           .select('*');
@@ -146,6 +228,7 @@ document.addEventListener('alpine:init', () => {
         if (error) throw error;
 
         this.documentos = (data || []).map((doc) => this.normalizarDocumento(doc));
+        await this.carregarNotificacoes();
       } catch (e) {
         console.error('Falha na comunicação com Banco de Dados:', e.message);
         this.errorMessage = e.message;
@@ -247,7 +330,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     get stats() {
-      const listaBase = this.filteredDocumentos; // Usa a lista já filtrada para bater com a exportação
+      const listaBase = this.filteredDocumentos;
       return {
         total: listaBase.length,
         emDia: listaBase.filter(d => this.getStatusPrazo(d) === 'em_dia').length,
@@ -278,6 +361,42 @@ document.addEventListener('alpine:init', () => {
       });
 
       return Object.values(mapa).sort((a, b) => b.total - a.total);
+    },
+
+    labelStatusValue(status) {
+      if (status === 'vencido') return 'Vencido';
+      if (status === 'vence_em_breve') return 'Prestes a vencer';
+      if (status === 'em_dia') return 'Em dia';
+      return '-';
+    },
+
+    notificationBadgeClass(status) {
+      if (status === 'vencido') return 'bg-rose-100 text-rose-700';
+      if (status === 'vence_em_breve') return 'bg-amber-100 text-amber-700';
+      return 'bg-slate-100 text-slate-700';
+    },
+
+    formatDateTime(dateValue) {
+      const parsed = this.parseDateTime(dateValue);
+      if (!parsed) return '-';
+
+      return parsed.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    },
+
+    formatDiasNotificacao(item) {
+      if (!item || item.dias_restantes == null || item.dias_restantes === '') return '-';
+
+      const dias = Number(item.dias_restantes);
+      if (Number.isNaN(dias)) return '-';
+      if (dias === 0) return 'Vence hoje';
+      if (dias < 0) return `${Math.abs(dias)} dia(s) em atraso`;
+      return `${dias} dia(s) restantes`;
     },
 
     // --- HELPERS DE UI RESPONSIVA ---
@@ -324,14 +443,16 @@ document.addEventListener('alpine:init', () => {
       if (doc.is_vitalicio) return 'Vitalício (Não vence)';
 
       const dias = this.getDiasRestantes(doc);
-      return dias != null ? `${dias} dias restantes` : '-';
+      if (dias == null) return '-';
+      if (dias === 0) return 'Vence hoje';
+      if (dias < 0) return `${Math.abs(dias)} dia(s) em atraso`;
+      return `${dias} dias restantes`;
     },
 
     formatDate(date) {
       if (!date) return '-';
       if (String(date).includes('2999')) return 'Vitalício';
 
-      // Corrige fusos horários garantindo que a data seja lida corretamente
       const partes = String(date).split('-');
       if (partes.length === 3) return `${partes[2].slice(0, 2)}/${partes[1]}/${partes[0]}`;
 

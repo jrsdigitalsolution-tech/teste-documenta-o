@@ -37,143 +37,115 @@ document.addEventListener('alpine:init', () => {
       else document.body.classList.remove('overflow-hidden');
     },
 
-    getHojeNormalizado() {
-      const agora = new Date();
-      return new Date(Date.UTC(agora.getFullYear(), agora.getMonth(), agora.getDate()));
-    },
-
-    parseDateValue(dateValue) {
+    parseDate(dateValue) {
       if (!dateValue) return null;
 
-      const valor = String(dateValue).trim();
-      if (!valor) return null;
+      const raw = String(dateValue).trim();
+      if (!raw) return null;
+      if (raw.includes('2999')) return new Date(2999, 0, 1);
 
-      const match = valor.match(/^(\d{4})-(\d{2})-(\d{2})/);
-      if (match) {
-        const ano = Number(match[1]);
-        const mes = Number(match[2]) - 1;
-        const dia = Number(match[3]);
-        return new Date(Date.UTC(ano, mes, dia));
+      const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (isoMatch) {
+        return new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
       }
 
-      const parsed = new Date(valor);
+      const brMatch = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (brMatch) {
+        return new Date(Number(brMatch[3]), Number(brMatch[2]) - 1, Number(brMatch[1]));
+      }
+
+      const parsed = new Date(raw);
       if (Number.isNaN(parsed.getTime())) return null;
 
-      return new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
+      return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
     },
 
-    formatDateToISO(date) {
-      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
-      const ano = date.getUTCFullYear();
-      const mes = String(date.getUTCMonth() + 1).padStart(2, '0');
-      const dia = String(date.getUTCDate()).padStart(2, '0');
-      return `${ano}-${mes}-${dia}`;
+    todayDate() {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
     },
 
-    diffInDays(startDate, endDate) {
-      if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime())) return null;
-      if (!(endDate instanceof Date) || Number.isNaN(endDate.getTime())) return null;
+    diffInDays(fromDate, toDate) {
+      if (!(fromDate instanceof Date) || Number.isNaN(fromDate.getTime())) return null;
+      if (!(toDate instanceof Date) || Number.isNaN(toDate.getTime())) return null;
 
-      const millisecondsPerDay = 24 * 60 * 60 * 1000;
-      return Math.floor((endDate.getTime() - startDate.getTime()) / millisecondsPerDay);
+      const oneDay = 24 * 60 * 60 * 1000;
+      return Math.round((toDate.getTime() - fromDate.getTime()) / oneDay);
     },
 
-    getDiasAntecedencia(doc, vencimentoDate) {
-      const renovaAntesRaw = doc.renova_antes != null ? doc.renova_antes : doc.renovaAntes;
-      const renovaAntes = Number(renovaAntesRaw);
+    getDiasRestantes(doc) {
+      if (!doc) return null;
 
-      if (Number.isFinite(renovaAntes) && renovaAntes >= 0) {
-        return renovaAntes;
-      }
+      const valor = doc.dias_restantes != null ? doc.dias_restantes : doc.diasRestantes;
+      if (valor == null || valor === '') return null;
 
-      const dataSugerida = this.parseDateValue(doc.data_sugerida_renovacao || doc.dataSugeridaRenovacao);
-      if (dataSugerida && vencimentoDate) {
-        const diferenca = this.diffInDays(dataSugerida, vencimentoDate);
-        if (Number.isFinite(diferenca) && diferenca >= 0) {
-          return diferenca;
-        }
-      }
-
-      return 90;
+      const numero = Number(valor);
+      return Number.isNaN(numero) ? null : numero;
     },
 
-    getDataInicioAlerta(doc, vencimentoDate, diasAntecedencia) {
-      const dataSugerida = this.parseDateValue(doc.data_sugerida_renovacao || doc.dataSugeridaRenovacao);
-      if (dataSugerida) return dataSugerida;
+    getStatusPrazo(doc) {
+      if (!doc) return '';
 
-      if (!vencimentoDate || !Number.isFinite(diasAntecedencia)) return null;
-
-      const millisecondsPerDay = 24 * 60 * 60 * 1000;
-      return new Date(vencimentoDate.getTime() - (diasAntecedencia * millisecondsPerDay));
+      return doc.status_prazo || doc.statusPrazo || '';
     },
 
-    normalizarDocumentoPrazo(doc) {
-      const vencimentoRaw = doc.vencimento;
-      const isVitalicio = Boolean(vencimentoRaw && String(vencimentoRaw).includes('2999'));
-      const vencimentoDate = this.parseDateValue(vencimentoRaw);
-      const hoje = this.getHojeNormalizado();
+    calcularStatusFallback(doc) {
+      if (!doc) return 'em_dia';
 
-      doc.is_vitalicio = isVitalicio;
+      const vencimento = this.parseDate(doc.vencimento);
+      const dataSugerida = this.parseDate(doc.data_sugerida_renovacao || doc.dataSugeridaRenovacao);
+      const hoje = this.todayDate();
 
-      if (isVitalicio) {
-        doc.status_prazo = 'em_dia';
-        return doc;
+      if (vencimento && vencimento.getFullYear() === 2999) return 'em_dia';
+      if (vencimento && hoje > vencimento) return 'vencido';
+      if (dataSugerida && hoje >= dataSugerida) return 'vence_em_breve';
+
+      const dias = this.getDiasRestantes(doc);
+      if (dias != null) {
+        if (dias < 0) return 'vencido';
+        if (dias <= 90) return 'vence_em_breve';
       }
 
-      const diasRestantesCalculados = vencimentoDate ? this.diffInDays(hoje, vencimentoDate) : null;
-      const diasRestantesOriginais = doc.dias_restantes != null ? doc.dias_restantes : doc.diasRestantes;
-      const diasRestantesNormalizados = Number.isFinite(diasRestantesCalculados) ? diasRestantesCalculados : diasRestantesOriginais;
+      return 'em_dia';
+    },
 
-      if (diasRestantesNormalizados != null) {
-        doc.dias_restantes = diasRestantesNormalizados;
-        doc.diasRestantes = diasRestantesNormalizados;
+    normalizarDocumento(doc) {
+      const documento = { ...doc };
+      const vencimentoTexto = documento.vencimento != null ? String(documento.vencimento) : '';
+      const statusAtual = this.getStatusPrazo(documento);
+      const dias = this.getDiasRestantes(documento);
+
+      documento.is_vitalicio = vencimentoTexto.includes('2999');
+
+      if (documento.is_vitalicio) {
+        documento.status_prazo = 'em_dia';
+      } else if (statusAtual) {
+        documento.status_prazo = statusAtual;
+      } else {
+        documento.status_prazo = this.calcularStatusFallback(documento);
       }
 
-      const diasAntecedencia = this.getDiasAntecedencia(doc, vencimentoDate);
-      if (Number.isFinite(diasAntecedencia)) {
-        doc.renova_antes = diasAntecedencia;
-        doc.renovaAntes = diasAntecedencia;
+      if (dias != null) {
+        documento.dias_restantes = dias;
       }
 
-      const dataInicioAlerta = this.getDataInicioAlerta(doc, vencimentoDate, diasAntecedencia);
-      if (dataInicioAlerta && !doc.data_sugerida_renovacao && !doc.dataSugeridaRenovacao) {
-        const dataISO = this.formatDateToISO(dataInicioAlerta);
-        doc.data_sugerida_renovacao = dataISO;
-        doc.dataSugeridaRenovacao = dataISO;
-      }
-
-      if (Number.isFinite(diasRestantesCalculados)) {
-        if (diasRestantesCalculados < 0) {
-          doc.status_prazo = 'vencido';
-        } else if (dataInicioAlerta && hoje.getTime() >= dataInicioAlerta.getTime()) {
-          doc.status_prazo = 'vence_em_breve';
-        } else {
-          doc.status_prazo = 'em_dia';
-        }
-        return doc;
-      }
-
-      if (diasRestantesOriginais != null) {
-        if (diasRestantesOriginais < 0) doc.status_prazo = 'vencido';
-        else if (diasRestantesOriginais <= diasAntecedencia) doc.status_prazo = 'vence_em_breve';
-        else doc.status_prazo = 'em_dia';
-      }
-
-      return doc;
+      return documento;
     },
 
     async carregar() {
       this.loading = true;
       this.errorMessage = '';
+
       try {
         if (!supabaseClient) throw new Error("Cliente Supabase não configurado.");
 
-        const { data, error } = await supabaseClient.from('vw_documentos_status').select('*');
+        const { data, error } = await supabaseClient
+          .from('vw_documentos_status')
+          .select('*');
+
         if (error) throw error;
 
-        // Motor de Regras Matemáticas Avançadas
-        this.documentos = (data || []).map(doc => this.normalizarDocumentoPrazo(doc));
-
+        this.documentos = (data || []).map((doc) => this.normalizarDocumento(doc));
       } catch (e) {
         console.error('Falha na comunicação com Banco de Dados:', e.message);
         this.errorMessage = e.message;
@@ -257,19 +229,19 @@ document.addEventListener('alpine:init', () => {
       return this.documentos.filter(doc => {
         const textoBusca = (doc.apelido || doc.documento || '') + ' ' + (doc.orgao_expeditor || doc.orgaoExpeditor || '') + ' ' + (doc.categoria || '') + ' ' + (doc.tipo_doc || doc.tipo_documento || doc.tipoDocumento || '');
         const bateBusca = textoBusca.toLowerCase().includes(this.search.toLowerCase());
-        const status = doc.status_prazo || doc.statusPrazo;
+        const status = this.getStatusPrazo(doc);
         const bateStatus = !this.statusFilter || status === this.statusFilter;
         const bateCategoria = !this.categoriaFilter || doc.categoria === this.categoriaFilter;
         return bateBusca && bateStatus && bateCategoria;
       }).sort((a, b) => {
-        const statusA = a.status_prazo || a.statusPrazo;
-        const statusB = b.status_prazo || b.statusPrazo;
+        const statusA = this.getStatusPrazo(a);
+        const statusB = this.getStatusPrazo(b);
         const pesoA = pesos[statusA] || 4;
         const pesoB = pesos[statusB] || 4;
 
         if (pesoA !== pesoB) return pesoA - pesoB;
 
-        const getDias = (d) => d.is_vitalicio ? 999999 : (d.dias_restantes != null ? d.dias_restantes : (d.diasRestantes != null ? d.diasRestantes : 999999));
+        const getDias = (d) => d.is_vitalicio ? 999999 : (this.getDiasRestantes(d) != null ? this.getDiasRestantes(d) : 999999);
         return getDias(a) - getDias(b);
       });
     },
@@ -278,9 +250,9 @@ document.addEventListener('alpine:init', () => {
       const listaBase = this.filteredDocumentos; // Usa a lista já filtrada para bater com a exportação
       return {
         total: listaBase.length,
-        emDia: listaBase.filter(d => (d.status_prazo || d.statusPrazo) === 'em_dia').length,
-        venceEmBreve: listaBase.filter(d => (d.status_prazo || d.statusPrazo) === 'vence_em_breve').length,
-        vencido: listaBase.filter(d => (d.status_prazo || d.statusPrazo) === 'vencido').length
+        emDia: listaBase.filter(d => this.getStatusPrazo(d) === 'em_dia').length,
+        venceEmBreve: listaBase.filter(d => this.getStatusPrazo(d) === 'vence_em_breve').length,
+        vencido: listaBase.filter(d => this.getStatusPrazo(d) === 'vencido').length
       };
     },
 
@@ -293,7 +265,7 @@ document.addEventListener('alpine:init', () => {
 
       this.filteredDocumentos.forEach(doc => {
         const categoria = doc.categoria || 'Sem categoria';
-        const status = doc.status_prazo || doc.statusPrazo;
+        const status = this.getStatusPrazo(doc);
 
         if (!mapa[categoria]) {
           mapa[categoria] = { categoria, total: 0, emDia: 0, venceEmBreve: 0, vencido: 0 };
@@ -312,7 +284,8 @@ document.addEventListener('alpine:init', () => {
     labelStatus(doc) {
       if (!doc) return '-';
       if (doc.is_vitalicio) return 'Vitalício';
-      const status = doc.status_prazo || doc.statusPrazo;
+
+      const status = this.getStatusPrazo(doc);
       if (status === 'vencido') return 'Vencido';
       if (status === 'vence_em_breve') return 'Prestes a vencer';
       return 'Em dia';
@@ -321,7 +294,8 @@ document.addEventListener('alpine:init', () => {
     badgeClass(doc) {
       if (!doc) return '';
       if (doc.is_vitalicio) return 'bg-blue-100 text-blue-700';
-      const status = doc.status_prazo || doc.statusPrazo;
+
+      const status = this.getStatusPrazo(doc);
       if (status === 'vencido') return 'bg-rose-100 text-rose-700';
       if (status === 'vence_em_breve') return 'bg-amber-100 text-amber-700';
       return 'bg-emerald-100 text-emerald-700';
@@ -330,43 +304,43 @@ document.addEventListener('alpine:init', () => {
     urgenciaDiasClass(doc) {
       if (!doc) return '';
       if (doc.is_vitalicio) return 'text-blue-700 font-medium';
-      const dias = doc.dias_restantes != null ? doc.dias_restantes : doc.diasRestantes;
-      if (dias == null) return '';
-      if (dias < 0) return 'text-rose-700 font-bold';
-      if (dias <= 90) return 'text-amber-700 font-bold';
+
+      const status = this.getStatusPrazo(doc);
+      if (status === 'vencido') return 'text-rose-700 font-bold';
+      if (status === 'vence_em_breve') return 'text-amber-700 font-bold';
       return 'text-slate-800 font-medium';
     },
 
     formatDias(doc) {
       if (!doc) return '-';
       if (doc.is_vitalicio) return 'Vitalício';
-      const dias = doc.dias_restantes != null ? doc.dias_restantes : doc.diasRestantes;
+
+      const dias = this.getDiasRestantes(doc);
       return dias != null ? dias : '-';
     },
 
     formatDiasTexto(doc) {
       if (!doc) return '-';
       if (doc.is_vitalicio) return 'Vitalício (Não vence)';
-      const dias = doc.dias_restantes != null ? doc.dias_restantes : doc.diasRestantes;
-      if (dias == null) return '-';
-      if (dias < 0) return `${Math.abs(dias)} dia(s) em atraso`;
-      if (dias === 0) return 'Vence hoje';
-      return `${dias} dias restantes`;
+
+      const dias = this.getDiasRestantes(doc);
+      return dias != null ? `${dias} dias restantes` : '-';
     },
 
     formatDate(date) {
       if (!date) return '-';
+      if (String(date).includes('2999')) return 'Vitalício';
 
-      const valor = String(date);
-      if (valor.includes('2999')) return 'Vitalício';
+      // Corrige fusos horários garantindo que a data seja lida corretamente
+      const partes = String(date).split('-');
+      if (partes.length === 3) return `${partes[2].slice(0, 2)}/${partes[1]}/${partes[0]}`;
 
-      const parsed = this.parseDateValue(valor);
+      const parsed = this.parseDate(date);
       if (!parsed) return '-';
 
-      const dia = String(parsed.getUTCDate()).padStart(2, '0');
-      const mes = String(parsed.getUTCMonth() + 1).padStart(2, '0');
-      const ano = parsed.getUTCFullYear();
-
+      const dia = String(parsed.getDate()).padStart(2, '0');
+      const mes = String(parsed.getMonth() + 1).padStart(2, '0');
+      const ano = parsed.getFullYear();
       return `${dia}/${mes}/${ano}`;
     }
   }));

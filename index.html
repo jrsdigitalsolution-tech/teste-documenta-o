@@ -1,629 +1,1290 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Documentações</title>
+    <meta charset="UTF-8">
+    <!-- Meta tag crucial para responsividade em celulares -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistema de Controle Tático Pro</title>
+    
+    <!-- Bibliotecas Externas -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- CONEXÃO SUPABASE: Biblioteca oficial -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Dependências Externas Blindadas (Links limpos e diretos) -->
-  <script src="https://cdn.tailwindcss.com?v=3.4.3" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Estilos CSS Externos -->
-  <link rel="stylesheet" href="style.css">
+    <!-- Configuração Avançada do Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { 
+                        brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' },
+                        sidebar: '#0f172a'
+                    }
+                }
+            }
+        }
+    </script>
 
-  <!-- Lógica JavaScript Externa -->
-  <script src="script.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <!-- CSS Personalizado para Animações e Scrollbars -->
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        /* Scrollbar customizada e invisível onde necessário */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Animações de Modais e Toasts */
+        .modal-enter { opacity: 0; transform: scale(0.95) translateY(10px); }
+        .modal-enter-active { opacity: 1; transform: scale(1) translateY(0); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        
+        .toast-enter { transform: translateX(100%); opacity: 0; }
+        .toast-enter-active { transform: translateX(0); opacity: 1; transition: all 0.3s ease-out; }
+        .toast-exit { transform: translateX(100%); opacity: 0; transition: all 0.3s ease-in; }
+
+        /* Estilo para a Timeline da Tarefa */
+        .timeline-line { position: absolute; left: 11px; top: 24px; bottom: 0; width: 2px; background-color: #e2e8f0; z-index: 0; }
+        .timeline-dot { position: relative; z-index: 1; }
+    </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-blue-200">
-<div x-data="dashboard" class="min-h-screen relative flex flex-col">
+<body class="flex h-screen overflow-hidden text-slate-800 bg-slate-50 relative selection:bg-brand-500 selection:text-white">
 
-  <!-- CABEÇALHO GERAL -->
-  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur shadow-sm">
-    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:py-4 sm:px-6 lg:px-8">
-      <div class="flex items-center gap-3">
-        <img src="https://res.cloudinary.com/dbnyxxhe3/image/upload/v1772102800/02_Prancheta_1_ksm9oj.png" 
-             alt="Logo" 
-             class="h-8 sm:h-10 md:h-11 w-auto object-contain transition-all duration-300"
-             onerror="this.style.display='none'">
-        <div>
-          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-900">Documentações</h1>
-          <p class="text-xs sm:text-sm text-emerald-600 font-medium flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span> Conectado
-          </p>
+    <!-- CONTAINER DE NOTIFICAÇÕES (Toasts) -->
+    <div id="toast-container" class="fixed top-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- ========================================== -->
+    <!-- BARRA LATERAL (SIDEBAR) RESPONSIVA         -->
+    <!-- ========================================== -->
+    <!-- Overlay para mobile -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-30 hidden lg:hidden backdrop-blur-sm transition-opacity opacity-0"></div>
+    
+    <aside id="sidebar" class="w-72 bg-sidebar text-slate-300 flex flex-col h-full transition-transform duration-300 z-40 shadow-2xl fixed lg:static transform -translate-x-full lg:translate-x-0 flex-shrink-0 border-r border-slate-800">
+        
+        <!-- Logo -->
+        <div class="h-20 flex items-center justify-between px-6 border-b border-slate-800/60 bg-slate-950/50">
+            <div class="flex items-center">
+                <div class="bg-brand-600 p-2 rounded-lg mr-3 shadow-lg shadow-brand-500/20">
+                    <i data-lucide="activity" class="text-white w-5 h-5"></i>
+                </div>
+                <span class="text-white font-bold text-xl tracking-tight">TÁTICO<span class="font-light text-brand-400">PRO</span></span>
+            </div>
+            <button onclick="toggleSidebar()" class="lg:hidden text-slate-400 hover:text-white"><i data-lucide="x"></i></button>
         </div>
-      </div>
 
-      <div class="flex items-center gap-1 sm:gap-2">
-        <!-- Botão Notificações -->
-        <button type="button" @click="toggleNotificationsPanel()" aria-label="Notificações"
-                title="Notificações"
-                class="group relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-transparent text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:text-slate-900 active:scale-95 focus:outline-none focus:ring-2 focus:ring-slate-300/80 focus:ring-offset-2">
-          <span x-show="notificationsCount > 0" x-cloak
-                class="absolute -right-1 -top-1 inline-flex min-w-[1.2rem] items-center justify-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-white"
-                x-text="notificationsCount > 3 ? '3+' : notificationsCount"></span>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0m6 0H9" />
-          </svg>
-        </button>
+        <!-- Perfil do Usuário Logado -->
+        <div class="p-6 border-b border-slate-800/60 bg-slate-900/30">
+            <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-3">Sessão Atual</p>
+            <div class="flex items-center cursor-pointer hover:bg-slate-800 p-3 rounded-xl transition-all border border-transparent hover:border-slate-700 shadow-sm" onclick="toggleUserRole()" title="Clique para simular outro usuário">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mr-3 shadow-inner ring-2 ring-slate-700 transition-colors" id="user-avatar">D</div>
+                <div class="overflow-hidden flex-1">
+                    <p class="text-sm text-white font-semibold truncate" id="user-name">Carregando...</p>
+                    <p class="text-xs text-brand-400 truncate mt-0.5 flex items-center gap-1" id="user-role-badge">
+                        <i data-lucide="shield" class="w-3 h-3"></i> Admin
+                    </p>
+                </div>
+                <i data-lucide="chevrons-up-down" class="w-4 h-4 text-slate-500"></i>
+            </div>
+        </div>
 
-        <!-- Botão Exportar Modal -->
-        <button type="button" @click="showExportModal = true" aria-label="Exportar dados atuais"
-                title="Exportar dados atuais"
-                class="group inline-flex h-10 w-10 items-center justify-center rounded-full bg-transparent text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:text-slate-900 active:scale-95 focus:outline-none focus:ring-2 focus:ring-slate-300/80 focus:ring-offset-2">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-        </button>
+        <!-- Navegação Principal -->
+        <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto custom-scrollbar">
+            <p class="px-3 text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-2 mt-2">Menu Principal</p>
+            
+            <button onclick="navigate('dashboard')" id="nav-dashboard" class="w-full flex items-center px-4 py-3.5 rounded-xl bg-brand-600 text-white transition-all shadow-md shadow-brand-500/20 font-medium">
+                <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 opacity-90"></i> Visão Geral
+            </button>
+            
+            <button onclick="navigate('user-tasks')" id="nav-user-tasks" class="w-full flex items-center px-4 py-3.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition-all font-medium">
+                <i data-lucide="clipboard-list" class="w-5 h-5 mr-3 opacity-90"></i> Minhas Execuções
+                <span id="badge-minhas" class="ml-auto bg-brand-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
+            </button>
+            
+            <div class="admin-only hidden flex-col space-y-1.5 mt-6">
+                <p class="px-3 text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-2 mt-4">Gestão Direção</p>
+                
+                <button onclick="navigate('admin')" id="nav-admin" class="w-full flex items-center px-4 py-3.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition-all font-medium">
+                    <i data-lucide="shield-check" class="w-5 h-5 mr-3 opacity-90"></i> Avaliações e Baixas
+                    <span id="badge-admin" class="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
+                </button>
+                
+                <button onclick="gerarRelatorioCSV()" class="w-full flex items-center px-4 py-3.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition-all font-medium">
+                    <i data-lucide="download-cloud" class="w-5 h-5 mr-3 opacity-90"></i> Exportar Relatório
+                </button>
+            </div>
+        </nav>
+        
+        <div class="p-4 border-t border-slate-800/60 text-center">
+            <p class="text-[10px] text-slate-600">v2.0 • Sistema Tático</p>
+        </div>
+    </aside>
 
-        <!-- Botão Atualizar -->
-        <button type="button" @click="carregar()" aria-label="Atualizar painel"
-                title="Atualizar painel"
-                class="group inline-flex h-10 w-10 items-center justify-center rounded-full bg-transparent text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:text-slate-900 active:scale-95 focus:outline-none focus:ring-2 focus:ring-slate-300/80 focus:ring-offset-2">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform duration-200 group-hover:rotate-90 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
-      </div>
+    <!-- ========================================== -->
+    <!-- ÁREA PRINCIPAL (HEADER + CONTEÚDO)         -->
+    <!-- ========================================== -->
+    <main class="flex-1 flex flex-col h-full relative overflow-hidden bg-slate-50/50 w-full">
+        
+        <!-- Header -->
+        <header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 z-10 shadow-sm flex-shrink-0">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar()" class="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition"><i data-lucide="menu"></i></button>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-800 tracking-tight" id="page-title">Dashboard Tático</h1>
+                    <p class="text-xs text-slate-500 hidden sm:block" id="page-subtitle">Acompanhamento e métricas de desempenho</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3 sm:space-x-4">
+                <button onclick="openModal('modal-nova-tarefa')" class="bg-slate-900 hover:bg-brand-600 text-white px-4 sm:px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                    <i data-lucide="plus-circle" class="w-4 h-4 mr-2"></i> <span class="hidden sm:inline">Nova Ficha A4</span><span class="sm:hidden">Novo</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Container Dinâmico de Views -->
+        <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar" id="main-content">
+            <!-- As Views são injetadas aqui pelo JS -->
+        </div>
+    </main>
+
+    <!-- ========================================== -->
+    <!-- MODAL 1: FORMULÁRIO DE NOVA FICHA A4       -->
+    <!-- ========================================== -->
+    <div id="modal-nova-tarefa" class="fixed inset-0 bg-slate-900/60 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity p-2 sm:p-4 opacity-0">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col modal-enter overflow-hidden border border-slate-200" id="modal-nova-tarefa-content">
+            
+            <div class="flex justify-between items-center p-5 sm:p-6 border-b border-slate-200 bg-white relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-brand-500"></div>
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center"><i data-lucide="file-signature" class="w-6 h-6 mr-3 text-brand-600"></i> Ficha de Controle A4</h2>
+                    <p class="text-xs text-slate-500 mt-1 ml-9">Preencha os blocos 1, 2 e 3 para registrar uma nova atividade tática.</p>
+                </div>
+                <button type="button" onclick="closeModal('modal-nova-tarefa')" class="text-slate-400 hover:text-red-500 bg-slate-100 hover:bg-red-50 p-2 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <div class="p-4 sm:p-8 overflow-y-auto flex-1 bg-slate-50/50 custom-scrollbar">
+                <form id="form-nova-tarefa" onsubmit="event.preventDefault(); criarTarefa();" class="space-y-8 max-w-4xl mx-auto">
+                    
+                    <!-- BLOCO 1 -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-5 flex items-center"><span class="bg-blue-100 text-blue-700 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-xs">1</span> Identificação da Atividade</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Título Resumido <span class="text-red-500">*</span></label>
+                                <input type="text" id="nt-titulo" required placeholder="Ex: Manutenção Preventiva Gerador" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Prioridade</label>
+                                <select id="nt-prioridade" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-white">
+                                    <option value="Baixa">Baixa</option><option value="Média" selected>Média</option><option value="Alta">Alta</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Setor Solicitante</label>
+                                <select id="nt-setor-solicitante" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white"></select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Setor Responsável & Executor <span class="text-red-500">*</span></label>
+                                <div class="flex gap-2">
+                                    <select id="nt-setor-resp" class="w-1/2 border border-slate-300 rounded-lg p-2.5 text-sm bg-white"></select>
+                                    <select id="nt-responsavel" required class="w-1/2 border border-slate-300 rounded-lg p-2.5 text-sm bg-white"></select>
+                                </div>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Contexto Inicial (Opcional)</label>
+                                <input type="text" id="nt-obs-inicial" placeholder="Por que esta tarefa está sendo pedida?" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOCO 2 -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></div>
+                        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-5 flex items-center"><span class="bg-amber-100 text-amber-700 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-xs">2</span> Descrição e Entregáveis</h3>
+                        
+                        <div class="grid grid-cols-1 gap-5">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Descrição Detalhada <span class="text-red-500">*</span></label>
+                                <textarea id="nt-descricao" rows="3" required placeholder="Descreva passo a passo o que precisa ser feito..." class="w-full border border-slate-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-brand-500 outline-none resize-none"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Resultado Esperado (Critério de Aceite) <span class="text-red-500">*</span></label>
+                                <input type="text" id="nt-resultado" required placeholder="Ex: Equipamento funcionando e área limpa." class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOCO 3 -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
+                        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-5 flex items-center"><span class="bg-emerald-100 text-emerald-700 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-xs">3</span> Prazos e Vínculos</h3>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Início Previsto</label>
+                                <input type="date" id="nt-inicio-prev" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none text-slate-700">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Término Previsto</label>
+                                <input type="date" id="nt-termino-prev" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none text-slate-700">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-red-600 mb-1.5">Prazo Limite (Deadline) <span class="text-red-500">*</span></label>
+                                <input type="date" id="nt-prazo-limite" required class="w-full border border-red-300 bg-red-50 rounded-lg p-2.5 text-sm outline-none text-red-700 focus:ring-2 focus:ring-red-500">
+                            </div>
+                        </div>
+                        
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Vínculo com Obra?</label>
+                                <select id="nt-obra" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none bg-white" onchange="toggleFormFields()">
+                                    <option value="Não">Não</option><option value="Sim">Sim</option>
+                                </select>
+                            </div>
+                            <div class="sm:col-span-2 hidden transition-all" id="div-cliente">
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Nome da Obra / Cliente</label>
+                                <input type="text" id="nt-cliente" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none">
+                            </div>
+                            <div class="hidden transition-all" id="div-local">
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Localização</label>
+                                <input type="text" id="nt-local" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none">
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Gera Custo Extra?</label>
+                                <select id="nt-gera-custo" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none bg-white" onchange="toggleFormFields()">
+                                    <option value="Não">Não</option><option value="Sim">Sim</option>
+                                </select>
+                            </div>
+                            <div class="hidden transition-all" id="div-tipo-custo">
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Tipo de Custo</label>
+                                <select id="nt-tipo-custo" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white"></select>
+                            </div>
+                            <div class="sm:col-span-2 hidden transition-all" id="div-valor">
+                                <label class="block text-xs font-bold text-slate-600 mb-1.5">Valor Estimado (R$)</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-slate-500 text-sm">R$</span>
+                                    <input type="number" step="0.01" id="nt-valor" placeholder="0.00" class="w-full border border-slate-300 rounded-lg p-2.5 pl-9 text-sm outline-none">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="p-5 border-t border-slate-200 bg-white flex justify-end gap-3 rounded-b-2xl">
+                <button type="button" onclick="closeModal('modal-nova-tarefa')" class="px-6 py-2.5 text-slate-600 text-sm font-bold hover:bg-slate-100 rounded-lg transition-colors">Cancelar</button>
+                <button type="button" onclick="document.getElementById('form-nova-tarefa').requestSubmit()" class="px-8 py-2.5 bg-brand-600 text-white text-sm font-bold rounded-lg hover:bg-brand-700 transition-all shadow-lg shadow-brand-500/30 flex items-center">
+                    <i data-lucide="send" class="w-4 h-4 mr-2"></i> Criar Ficha e Enviar para Avaliação
+                </button>
+            </div>
+        </div>
     </div>
-  </header>
 
-  <!-- ÁREA PRINCIPAL -->
-  <main class="mx-auto max-w-7xl w-full px-4 py-4 sm:py-6 sm:px-6 lg:px-8 flex-1">
-
-    <!-- Painel Visual de Erro -->
-    <template x-if="errorMessage">
-      <div class="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4 shadow-sm flex items-start gap-3 animate-fade-in">
-        <span class="text-xl">⚠️</span>
-        <div>
-          <h3 class="text-sm font-semibold text-rose-800">Erro de comunicação</h3>
-          <p class="text-sm text-rose-700 mt-1" x-text="errorMessage"></p>
+    <!-- ========================================== -->
+    <!-- MODAL 2: MESA DE TRABALHO E WORKFLOW       -->
+    <!-- ========================================== -->
+    <div id="modal-detalhes" class="fixed inset-0 bg-slate-900/80 z-50 hidden flex items-center justify-center backdrop-blur-md transition-opacity p-2 sm:p-4 opacity-0">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[95vh] flex flex-col overflow-hidden modal-enter border border-slate-700" id="modal-detalhes-content">
+            <!-- O conteúdo da ficha é injetado aqui via JavaScript de forma dinâmica -->
         </div>
-      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TEMPLATES DAS VIEWS (Injetados via JS)     -->
+    <!-- ========================================== -->
+    
+    <!-- TEMPLATE: DASHBOARD GERAL -->
+    <template id="tpl-dashboard">
+        <!-- Cards de KPI -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+                <div><p class="text-[11px] text-slate-500 font-bold uppercase tracking-wider mb-1">Total de Fichas</p><h2 class="text-3xl font-black text-slate-800" id="dash-total">0</h2></div>
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><i data-lucide="layers" class="w-6 h-6"></i></div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+                <div><p class="text-[11px] text-slate-500 font-bold uppercase tracking-wider mb-1">Em Execução</p><h2 class="text-3xl font-black text-amber-500" id="dash-execucao">0</h2></div>
+                <div class="w-12 h-12 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center"><i data-lucide="hammer" class="w-6 h-6"></i></div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+                <div><p class="text-[11px] text-slate-500 font-bold uppercase tracking-wider mb-1">Fila da Direção</p><h2 class="text-3xl font-black text-purple-600" id="dash-pendentes">0</h2></div>
+                <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center"><i data-lucide="inbox" class="w-6 h-6"></i></div>
+            </div>
+            <div class="bg-gradient-to-br from-red-50 to-white p-5 rounded-2xl border border-red-200 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+                <div><p class="text-[11px] text-red-500 font-bold uppercase tracking-wider mb-1">Prazos Vencidos</p><h2 class="text-3xl font-black text-red-600" id="dash-atraso">0</h2></div>
+                <div class="w-12 h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center animate-pulse"><i data-lucide="alarm-clock" class="w-6 h-6"></i></div>
+            </div>
+        </div>
+
+        <!-- Seção de Gráficos e Tabelas -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+            
+            <!-- Tabela de Recentes -->
+            <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+                <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center"><i data-lucide="history" class="w-4 h-4 mr-2 text-slate-400"></i> Fichas Movimentadas Recentemente</h3>
+                </div>
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-white border-b border-slate-200 text-[10px] uppercase text-slate-500 tracking-wider">
+                                <th class="py-3 px-4 font-bold">Ficha / ID</th>
+                                <th class="py-3 px-4 font-bold">Resumo</th>
+                                <th class="py-3 px-4 font-bold">Executor</th>
+                                <th class="py-3 px-4 font-bold">Status</th>
+                                <th class="py-3 px-4 font-bold">Prazo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-table-body" class="text-sm divide-y divide-slate-100">
+                            <!-- Injetado via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Gráfico de Status -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col p-5">
+                <h3 class="text-sm font-bold text-slate-800 mb-6 flex items-center"><i data-lucide="pie-chart" class="w-4 h-4 mr-2 text-slate-400"></i> Visão Geral por Status</h3>
+                <div class="flex-1 relative min-h-[250px] w-full flex items-center justify-center">
+                    <canvas id="chartStatus"></canvas>
+                </div>
+            </div>
+        </div>
     </template>
 
-    <section class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <!-- Cartão: Resumo Geral -->
-      <div class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col">
-        <div class="mb-4 flex items-center justify-between">
-          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Resumo Geral</h2>
-          <span class="text-xs sm:text-sm text-slate-400 bg-slate-100 px-2 py-1 rounded-md" x-text="loading ? 'Carregando...' : `${stats.total} visíveis`"></span>
-        </div>
-
-        <div class="space-y-3 flex-1 flex flex-col justify-center">
-          <div @click="scrollToLista('')" title="Remover filtros" class="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors shadow-sm border border-slate-100/50">
-            <p class="font-medium text-sm sm:text-base text-slate-600">Total</p>
-            <p class="text-lg font-bold text-slate-800" x-text="stats.total"></p>
-          </div>
-          <div @click="scrollToLista('em_dia')" title="Filtrar Em dia" class="flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3 cursor-pointer hover:bg-emerald-100 transition-colors shadow-sm border border-emerald-100/50">
-            <p class="font-medium text-sm sm:text-base text-emerald-700">Em dia</p>
-            <p class="text-lg font-bold text-emerald-700" x-text="stats.emDia"></p>
-          </div>
-          <div @click="scrollToLista('vence_em_breve')" title="Filtrar Prestes a vencer" class="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3 cursor-pointer hover:bg-amber-100 transition-colors shadow-sm border border-amber-100/50">
-            <p class="font-medium text-sm sm:text-base text-amber-700">Prestes a vencer</p>
-            <p class="text-lg font-bold text-amber-700" x-text="stats.venceEmBreve"></p>
-          </div>
-          <div @click="scrollToLista('vencido')" title="Filtrar Vencidos" class="flex items-center justify-between rounded-xl bg-rose-50 px-4 py-3 cursor-pointer hover:bg-rose-100 transition-colors shadow-sm border border-rose-100/50">
-            <p class="font-medium text-sm sm:text-base text-rose-700">Vencidos</p>
-            <p class="text-lg font-bold text-rose-700" x-text="stats.vencido"></p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Cartão: Tabela de Categorias -->
-      <div class="rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-hidden">
-        <div class="p-4 sm:p-5 border-b border-slate-100 bg-white z-20 flex justify-between items-center">
-          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Por Categoria</h2>
-        </div>
-
-        <div class="flex-1 overflow-y-auto max-h-[320px]">
-          <table class="min-w-full text-sm text-left border-collapse">
-            <thead class="sticky top-0 bg-slate-50 border-b border-slate-200 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 z-10 shadow-sm">
-              <tr>
-                <th class="px-4 sm:px-5 py-3">Nome da Categoria</th>
-                <th class="px-2 py-3 text-center w-20 sm:w-24">Atrasado</th>
-                <th class="px-2 py-3 text-center w-20 sm:w-24">Breve</th>
-                <th class="px-4 py-3 text-center w-20 sm:w-24">OK</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <template x-for="item in resumoCategorias.sort((a, b) => b.vencido - a.vencido || b.venceEmBreve - a.venceEmBreve || b.emDia - a.emDia)" :key="item.categoria">
-                <tr class="hover:bg-slate-50 transition-colors group">
-                  <td class="px-4 sm:px-5 py-3">
-                    <p class="font-semibold text-sm sm:text-base text-slate-800 group-hover:text-blue-600 transition-colors" x-text="item.categoria"></p>
-                    <p class="text-xs text-slate-500 mt-0.5"><span x-text="item.total"></span> documento(s)</p>
-                  </td>
-                  <td class="px-2 py-3 text-center align-middle">
-                    <span class="inline-block px-2.5 py-1 rounded-md text-base sm:text-lg font-bold"
-                          :class="item.vencido > 0 ? 'bg-rose-100 text-rose-700' : 'text-slate-300'" x-text="item.vencido"></span>
-                  </td>
-                  <td class="px-2 py-3 text-center align-middle">
-                    <span class="inline-block px-2.5 py-1 rounded-md text-base sm:text-lg font-bold"
-                          :class="item.venceEmBreve > 0 ? 'bg-amber-100 text-amber-700' : 'text-slate-300'" x-text="item.venceEmBreve"></span>
-                  </td>
-                  <td class="px-4 py-3 text-center align-middle">
-                    <span class="inline-block px-2.5 py-1 rounded-md text-base sm:text-lg font-bold"
-                          :class="item.emDia > 0 ? 'bg-emerald-100 text-emerald-700' : 'text-slate-300'" x-text="item.emDia"></span>
-                  </td>
-                </tr>
-              </template>
-              <template x-if="resumoCategorias.length === 0">
-                 <tr><td colspan="4" class="text-center py-6 text-slate-400 italic">Nenhuma categoria encontrada.</td></tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- Filtros de Busca -->
-    <section class="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
-        <div class="relative">
-          <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-          <input x-model="search" type="text" placeholder="Buscar documento, órgão..."
-                 class="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 text-sm outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all"/>
-        </div>
-
-        <select x-model="statusFilter" class="rounded-xl border border-slate-200 px-4 py-3 text-sm w-full outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all bg-white cursor-pointer">
-          <option value="">Todos os status</option>
-          <option value="vencido">Vencidos</option>
-          <option value="vence_em_breve">Prestes a vencer</option>
-          <option value="em_dia">Em dia / Vitalício</option>
-        </select>
-
-        <select x-model="categoriaFilter" class="rounded-xl border border-slate-200 px-4 py-3 text-sm w-full outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all bg-white cursor-pointer">
-          <option value="">Todas as categorias</option>
-          <template x-for="cat in categoriasUnicas" :key="cat">
-            <option :value="cat" x-text="cat"></option>
-          </template>
-        </select>
-
-        <button type="button" @click="limparFiltros()"
-                class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-200">
-          Limpar filtros
-        </button>
-      </div>
-    </section>
-
-    <!-- Tabela Principal (Desktop) & Cards (Mobile) -->
-    <section id="documentos-section" class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden scroll-mt-24">
-      <div class="border-b border-slate-200 px-4 sm:px-5 py-4 bg-slate-50/50">
-        <h2 class="text-base font-bold text-slate-800">Documentos Controlados</h2>
-        <p class="text-xs sm:text-sm text-slate-500 mt-1">
-          <strong>Clique no documento para detalhes.</strong>
-        </p>
-      </div>
-
-      <div class="hidden lg:block overflow-x-auto">
-        <table class="min-w-full text-sm text-left border-collapse">
-          <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px] font-bold">
-          <tr>
-            <th class="px-5 py-3.5">Apelido</th>
-            <th class="px-5 py-3.5">Órgão Expedidor</th>
-            <th class="px-5 py-3.5">Categoria</th>
-            <th class="px-5 py-3.5">Vencimento</th>
-            <th class="px-5 py-3.5">Dias</th>
-            <th class="px-5 py-3.5 text-center">Status</th>
-          </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-          <template x-for="doc in filteredDocumentos" :key="doc.id">
-            <tr @click="selected = doc"
-                class="cursor-pointer transition-colors hover:bg-slate-50 group">
-              <td class="px-5 py-4">
-                <div class="font-semibold text-slate-800 group-hover:text-blue-600 transition-colors" x-text="doc.apelido || '-'"></div>
-              </td>
-              <td class="px-5 py-4 text-slate-600" x-text="doc.orgao_expeditor || doc.orgaoExpeditor || '-'"></td>
-              <td class="px-5 py-4 text-slate-600" x-text="doc.categoria || '-'"></td>
-              <td class="px-5 py-4 text-slate-600" x-text="formatDate(doc.vencimento)"></td>
-              <td class="px-5 py-4">
-                <span :class="urgenciaDiasClass(doc)" x-text="formatDias(doc)"></span>
-              </td>
-              <td class="px-5 py-4 text-center">
-                <span class="inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide shadow-sm"
-                      :class="badgeClass(doc)"
-                      x-text="labelStatus(doc)">
-                </span>
-              </td>
-            </tr>
-          </template>
-          <template x-if="filteredDocumentos.length === 0">
-             <tr><td colspan="6" class="text-center py-10 text-slate-400 italic">Nenhum documento encontrado.</td></tr>
-          </template>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Versão Mobile (Cards) -->
-      <div class="p-4 lg:hidden bg-slate-50/30">
-        <div class="space-y-3">
-          <template x-for="doc in filteredDocumentos" :key="doc.id">
-            <div @click="selected = doc" 
-                 class="rounded-xl border border-slate-200 bg-white p-4 cursor-pointer transition-all hover:shadow-md hover:border-slate-300">
-              <div class="flex items-start justify-between gap-3 mb-2">
-                <div class="flex-1 pr-2">
-                  <p class="font-bold text-slate-800 leading-tight" x-text="doc.apelido || '-'"></p>
-                  <p class="text-xs text-slate-500 mt-1 line-clamp-1" x-text="doc.orgao_expeditor || doc.orgaoExpeditor || '-'"></p>
+    <!-- TEMPLATE: MINHAS EXECUÇÕES (Colaborador) -->
+    <template id="tpl-user-tasks">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <p class="text-sm text-slate-600"><i data-lucide="info" class="inline w-4 h-4 mr-1 text-brand-500"></i> Fichas onde você é o <strong>Responsável direto</strong>. Inicie ou informe a conclusão.</p>
+            <div class="flex w-full sm:w-auto gap-2">
+                <div class="relative w-full sm:w-64">
+                    <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
+                    <input type="text" id="search-user" placeholder="Buscar por título ou ID..." class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none" onkeyup="renderUserTasks()">
                 </div>
-                <span class="inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wide shadow-sm shrink-0 whitespace-nowrap"
-                      :class="badgeClass(doc)"
-                      x-text="labelStatus(doc)">
-                </span>
-              </div>
+            </div>
+        </div>
 
-              <div class="grid grid-cols-2 gap-3 text-sm mt-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <div>
-                  <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Categoria</p>
-                  <p class="truncate font-medium text-slate-700" x-text="doc.categoria || '-'"></p>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="user-tasks-grid">
+            <!-- Cards injetados via JS -->
+        </div>
+    </template>
+
+    <!-- TEMPLATE: GESTÃO ADMIN (Direção) -->
+    <template id="tpl-admin">
+        <div class="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            <p class="text-sm text-slate-600">Painel exclusivo da Direção para <strong class="text-blue-600">Aprovação Inicial (Bloco 4)</strong> e <strong class="text-green-600">Baixa Final (Bloco 6)</strong>.</p>
+            <div class="relative w-full sm:w-64">
+                <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
+                <input type="text" id="search-admin" placeholder="Buscar fichas..." class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none" onkeyup="renderAdminTable(currentAdminTab)">
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+            <!-- Abas Estilizadas -->
+            <div class="flex overflow-x-auto border-b border-slate-200 bg-slate-50/80 custom-scrollbar p-2 gap-2">
+                <button onclick="renderAdminTable('avaliacao')" id="tab-avaliacao" class="admin-tab relative px-5 py-3 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex items-center bg-white text-blue-600 shadow-sm ring-1 ring-slate-200">
+                    <i data-lucide="file-clock" class="w-4 h-4 mr-2"></i> 1. Aguardando Aprovação
+                    <span id="badge-tab-av" class="ml-2 bg-blue-100 text-blue-700 py-0.5 px-2 rounded-full text-[10px]">0</span>
+                </button>
+                <button onclick="renderAdminTable('baixa')" id="tab-baixa" class="admin-tab relative px-5 py-3 rounded-lg text-sm font-medium text-slate-500 hover:bg-white hover:text-slate-800 transition-all whitespace-nowrap flex items-center">
+                    <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i> 2. Aguardando Baixa
+                    <span id="badge-tab-bx" class="ml-2 bg-slate-200 text-slate-700 py-0.5 px-2 rounded-full text-[10px]">0</span>
+                </button>
+                <button onclick="renderAdminTable('todas')" id="tab-todas" class="admin-tab relative px-5 py-3 rounded-lg text-sm font-medium text-slate-500 hover:bg-white hover:text-slate-800 transition-all whitespace-nowrap flex items-center">
+                    <i data-lucide="database" class="w-4 h-4 mr-2"></i> Banco Geral de Fichas
+                </button>
+            </div>
+            
+            <!-- Tabela -->
+            <div class="p-0 overflow-x-auto flex-1">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-white border-b border-slate-200">
+                        <tr class="text-[10px] uppercase text-slate-500 tracking-widest bg-slate-50/50">
+                            <th class="py-4 px-6 font-bold">Ficha e Título</th>
+                            <th class="py-4 px-6 font-bold">Setores (Sol. / Resp.)</th>
+                            <th class="py-4 px-6 font-bold">Status Atual</th>
+                            <th class="py-4 px-6 font-bold">Prazos</th>
+                            <th class="py-4 px-6 font-bold text-right">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-table-body" class="text-sm divide-y divide-slate-100 bg-white">
+                        <!-- Linhas Injetadas via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </template>
+
+    <!-- ========================================== -->
+    <!-- MOTOR DE LÓGICA JAVASCRIPT (SENIOR LEVEL)  -->
+    <!-- ========================================== -->
+    
+    <script>
+        // --- CONEXÃO COM O SUPABASE ---
+        var supabaseUrl = 'https://pwmgbaxywvyyfmlkygqr.supabase.co';
+        var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB3bWdiYXh5d3Z5eWZtbGt5Z3FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczNDI3NDAsImV4cCI6MjA5MjkxODc0MH0.kSYonDj0VBHjMZuVlGeVQjAuMmbEBMQfB4OsBcZOecg';
+        
+        // Inicializa apontando para o schema que criamos no SQL
+        var supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey, {
+            db: { schema: 'gestao_atividades' }
+        });
+
+        /**
+         * ARQUITETURA DE DADOS (Simulando Banco de Dados Real com LocalStorage)
+         * O LocalStorage permite que os dados persistam mesmo se a página recarregar.
+         */
+        var STORAGE_KEY = 'taticoPro_v2_data';
+        var currentAdminTab = 'avaliacao'; // Guarda a aba atual do admin
+        var currentChart = null;
+
+        // Dados base (usados caso seja o primeiro acesso)
+        var defaultData = {
+            listas: {
+                prioridade: ['Baixa', 'Média', 'Alta'],
+                status: ['Aberta', 'Em avaliação', 'Aprovada', 'Em execução', 'Concluída', 'Baixada', 'Cancelada', 'Reprovada'],
+                setores: ['Comercial', 'Sala Técnica', 'Produção', 'Serviços', 'Locação', 'Administrativo', 'Financeiro', 'Compras', 'PD&I', 'Automação', 'Direção'],
+                tipoCusto: ['Sem custo', 'Material', 'Mão de obra interna', 'Terceiros', 'Deslocamento', 'Locação', 'Serviço externo', 'Outro']
+            },
+            usuarios: [
+                { id: 1, nome: 'Diretoria Executiva', role: 'admin', setor: 'Direção' },
+                { id: 2, nome: 'João Técnico', role: 'user', setor: 'Sala Técnica' },
+                { id: 3, nome: 'Maria Comercial', role: 'user', setor: 'Comercial' }
+            ],
+            currentUser: { id: 1, nome: 'Diretoria Executiva', role: 'admin', setor: 'Direção' },
+            tarefas: [] // Inicia vazio e popula com exemplos se necessário
+        };
+
+        var DB = {}; // Nosso banco em memória
+
+        // --- INICIALIZAÇÃO DO SISTEMA ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initDatabase();
+            lucide.createIcons();
+            populateForms();
+            updateUIForRole();
+            navigate('dashboard');
+            
+            // Log silencioso confirmando que a variável supabase está ativa
+            console.log("Cliente Supabase Inicializado:", supabaseClient);
+        });
+
+        function initDatabase() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                DB = JSON.parse(saved);
+            } else {
+                DB = JSON.parse(JSON.stringify(defaultData));
+                // Criar um dado inicial para visualização se for a primeira vez
+                if(DB.tarefas.length === 0) seedInitialData();
+                saveDatabase();
+            }
+        }
+
+        function saveDatabase() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+            updateBadges(); // Sempre que salva, atualiza os contadores
+        }
+
+        // Dados de exemplo para o primeiro acesso
+        function seedInitialData() {
+            DB.tarefas = [
+                {
+                    id: 'TK-1001', dataAbertura: '2026-05-01', prioridade: 'Alta', status: 'Em execução',
+                    setorSolicitante: 'Administrativo', setorResponsavel: 'Sala Técnica', responsavelId: 2,
+                    obsInicial: 'Equipamento parando.',
+                    titulo: 'Manutenção do Servidor B', descricao: 'Trocar HDs e fonte.', resultadoEsperado: 'Servidor online.',
+                    inicioPrevisto: '2026-05-05', terminoPrevisto: '2026-05-06', prazoLimite: '2026-05-10',
+                    obraVinculada: 'Não', cliente: '', local: '', geraCusto: 'Sim', tipoCusto: 'Material', valorEstimado: '1500.00',
+                    avaliacao: { data: '2026-05-02', aprovador: 'Diretoria Executiva', encaminhamento: 'Aprovada', observacoes: 'Urgente.' },
+                    conclusao: null, baixa: null
+                },
+                {
+                    id: 'TK-1002', dataAbertura: '2026-05-10', prioridade: 'Média', status: 'Concluída',
+                    setorSolicitante: 'Direção', setorResponsavel: 'Comercial', responsavelId: 3,
+                    obsInicial: '', titulo: 'Proposta Cliente X', descricao: 'Fazer orçamento detalhado.', resultadoEsperado: 'Proposta enviada.',
+                    inicioPrevisto: '2026-05-11', terminoPrevisto: '2026-05-12', prazoLimite: '2026-05-15',
+                    obraVinculada: 'Sim', cliente: 'Construtora Alfa', local: 'Sede', geraCusto: 'Não',
+                    avaliacao: { data: '2026-05-10', aprovador: 'Diretoria Executiva', encaminhamento: 'Aprovada', observacoes: '' },
+                    conclusao: { data: '2026-05-12', informante: 'Maria Comercial', resumo: 'Enviado por e-mail, cliente acusou recebimento.', evidencia: 'Sim' },
+                    baixa: null
+                },
+                {
+                    id: 'TK-1003', dataAbertura: new Date().toISOString().split('T')[0], prioridade: 'Baixa', status: 'Aberta',
+                    setorSolicitante: 'Produção', setorResponsavel: 'Compras', responsavelId: 2,
+                    obsInicial: 'Reposição.', titulo: 'Compra de EPIs', descricao: 'Comprar 10 capacetes.', resultadoEsperado: 'EPIs no almoxarifado.',
+                    inicioPrevisto: '', terminoPrevisto: '', prazoLimite: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
+                    obraVinculada: 'Não', geraCusto: 'Sim', tipoCusto: 'Material', valorEstimado: '300.00',
+                    avaliacao: null, conclusao: null, baixa: null
+                }
+            ];
+        }
+
+        // --- SISTEMA DE NOTIFICAÇÕES (TOASTS) ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const styles = {
+                success: 'bg-white border-l-4 border-green-500 text-slate-800',
+                error: 'bg-white border-l-4 border-red-500 text-slate-800',
+                info: 'bg-white border-l-4 border-blue-500 text-slate-800'
+            };
+            
+            const icons = {
+                success: '<i data-lucide="check-circle" class="text-green-500 w-5 h-5 mr-3"></i>',
+                error: '<i data-lucide="alert-circle" class="text-red-500 w-5 h-5 mr-3"></i>',
+                info: '<i data-lucide="info" class="text-blue-500 w-5 h-5 mr-3"></i>'
+            };
+
+            toast.className = `flex items-center p-4 rounded-lg shadow-xl min-w-[300px] toast-enter transition-all ${styles[type]}`;
+            toast.innerHTML = `${icons[type]}<span class="font-medium text-sm">${message}</span>`;
+            
+            container.appendChild(toast);
+            lucide.createIcons({ root: toast });
+            
+            // Ativa a animação
+            requestAnimationFrame(() => toast.classList.add('toast-enter-active'));
+            
+            // Remove após 3 segundos
+            setTimeout(() => {
+                toast.classList.remove('toast-enter-active');
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- UTILIDADES ---
+        const formatDate = (dateStr) => {
+            if(!dateStr) return '--/--/----';
+            const [y, m, d] = dateStr.split('-');
+            return `${d}/${m}/${y}`;
+        };
+
+        const isOverdue = (limitDate) => {
+            if(!limitDate) return false;
+            // Zera as horas para comparar apenas os dias
+            const limit = new Date(limitDate + 'T00:00:00');
+            const hoje = new Date();
+            hoje.setHours(0,0,0,0);
+            return limit < hoje;
+        };
+
+        function getStatusColor(status) {
+            const map = {
+                'Aberta': 'bg-slate-100 text-slate-600 border-slate-200',
+                'Em avaliação': 'bg-blue-50 text-blue-700 border-blue-200',
+                'Aprovada': 'bg-teal-50 text-teal-700 border-teal-200',
+                'Em execução': 'bg-amber-50 text-amber-700 border-amber-200',
+                'Concluída': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                'Baixada': 'bg-green-50 text-green-700 border-green-200',
+                'Reprovada': 'bg-red-50 text-red-700 border-red-200',
+                'Cancelada': 'bg-slate-800 text-slate-300 border-slate-700'
+            };
+            return map[status] || 'bg-gray-50 text-gray-700 border-gray-200';
+        }
+
+        // --- SISTEMA DE UI E NAVEGAÇÃO ---
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            
+            if (isClosed) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+
+        function toggleUserRole() {
+            // Alterna ciclicamente entre os usuários mockados
+            const currentIndex = DB.usuarios.findIndex(u => u.id === DB.currentUser.id);
+            const nextIndex = (currentIndex + 1) % DB.usuarios.length;
+            DB.currentUser = DB.usuarios[nextIndex];
+            
+            saveDatabase();
+            updateUIForRole();
+            showToast(`Sessão alterada para: ${DB.currentUser.nome}`, 'info');
+            navigate(DB.currentUser.role === 'admin' ? 'dashboard' : 'user-tasks');
+        }
+
+        function updateBadges() {
+            // Contadores da Sidebar e Abas
+            const myTasksCount = DB.tarefas.filter(t => t.responsavelId === DB.currentUser.id && t.status !== 'Baixada' && t.status !== 'Cancelada' && t.status !== 'Reprovada').length;
+            const adminPending = DB.tarefas.filter(t => t.status === 'Aberta' || t.status === 'Em avaliação' || t.status === 'Concluída').length;
+            
+            const avCount = DB.tarefas.filter(t => t.status === 'Aberta' || t.status === 'Em avaliação').length;
+            const bxCount = DB.tarefas.filter(t => t.status === 'Concluída').length;
+
+            const updateBadge = (id, count) => {
+                const el = document.getElementById(id);
+                if(el) { el.innerText = count; el.style.display = count > 0 ? 'inline-block' : 'none'; }
+            };
+
+            updateBadge('badge-minhas', myTasksCount);
+            updateBadge('badge-admin', adminPending);
+            updateBadge('badge-tab-av', avCount);
+            updateBadge('badge-tab-bx', bxCount);
+        }
+
+        function updateUIForRole() {
+            document.getElementById('user-name').innerText = DB.currentUser.nome;
+            const isAdm = DB.currentUser.role === 'admin';
+            
+            document.getElementById('user-role-badge').innerHTML = isAdm ? 
+                '<i data-lucide="shield" class="w-3 h-3"></i> Direção / Admin' : 
+                '<i data-lucide="wrench" class="w-3 h-3 text-emerald-400"></i> Colaborador';
+            
+            document.getElementById('user-avatar').innerText = DB.currentUser.nome.charAt(0);
+            document.getElementById('user-avatar').className = `w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mr-3 shadow-inner ring-2 transition-colors ${isAdm ? 'bg-slate-800 ring-slate-600' : 'bg-emerald-600 ring-emerald-400'}`;
+            
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdm ? 'flex' : 'none');
+            updateBadges();
+            lucide.createIcons();
+        }
+
+        function navigate(viewId) {
+            // Fecha sidebar no mobile ao navegar
+            if (window.innerWidth < 1024) toggleSidebar();
+
+            // Menu ativo
+            document.querySelectorAll('aside nav button').forEach(btn => {
+                btn.className = "w-full flex items-center px-4 py-3.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition-all font-medium";
+            });
+            const activeBtn = document.getElementById(`nav-${viewId}`);
+            if(activeBtn) activeBtn.className = "w-full flex items-center px-4 py-3.5 rounded-xl bg-brand-600 text-white transition-all shadow-md shadow-brand-500/20 font-medium";
+
+            const mainContent = document.getElementById('main-content');
+            mainContent.innerHTML = '';
+            
+            // Titulos Dinâmicos
+            const titles = {
+                'dashboard': { title: 'Visão Geral do Setor Tático', sub: 'Métricas, gráficos e panorama das atividades.' },
+                'user-tasks': { title: 'Minhas Execuções', sub: 'Painel de responsabilidade do colaborador.' },
+                'admin': { title: 'Mesa de Aprovações e Baixas', sub: 'Área restrita da Direção para governança das tarefas.' }
+            };
+            document.getElementById('page-title').innerText = titles[viewId].title;
+            document.getElementById('page-subtitle').innerText = titles[viewId].sub;
+            
+            const tpl = document.getElementById(`tpl-${viewId}`).content.cloneNode(true);
+            mainContent.appendChild(tpl);
+
+            if (viewId === 'dashboard') renderDashboardData();
+            if (viewId === 'user-tasks') renderUserTasks();
+            if (viewId === 'admin') renderAdminTable(currentAdminTab); 
+            
+            lucide.createIcons();
+        }
+
+        // --- FORMULÁRIOS E MODAIS ---
+        function populateForms() {
+            const { setores, tipoCusto } = DB.listas;
+            
+            const fillSelect = (id, data) => {
+                const sel = document.getElementById(id);
+                sel.innerHTML = ''; // Limpa
+                data.forEach(item => sel.add(new Option(item, item)));
+            };
+
+            fillSelect('nt-setor-solicitante', setores);
+            fillSelect('nt-setor-resp', setores);
+            fillSelect('nt-tipo-custo', tipoCusto);
+
+            // Popula responsáveis (Apenas roles 'user')
+            const selResp = document.getElementById('nt-responsavel');
+            selResp.innerHTML = '';
+            DB.usuarios.filter(u => u.role === 'user').forEach(u => selResp.add(new Option(u.nome, u.id)));
+        }
+
+        function toggleFormFields() {
+            const isObra = document.getElementById('nt-obra').value === 'Sim';
+            document.getElementById('div-cliente').classList.toggle('hidden', !isObra);
+            document.getElementById('div-local').classList.toggle('hidden', !isObra);
+            
+            const isCusto = document.getElementById('nt-gera-custo').value === 'Sim';
+            document.getElementById('div-tipo-custo').classList.toggle('hidden', !isCusto);
+            document.getElementById('div-valor').classList.toggle('hidden', !isCusto);
+            
+            // Se ocultou, limpa os valores
+            if(!isObra) { document.getElementById('nt-cliente').value = ''; document.getElementById('nt-local').value = ''; }
+            if(!isCusto) { document.getElementById('nt-valor').value = ''; }
+        }
+
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.remove('hidden');
+            // Pequeno timeout para o navegador processar a remoção do display:none antes de animar a opacidade
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                modal.firstElementChild.classList.add('modal-enter-active');
+            });
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.add('opacity-0');
+            modal.firstElementChild.classList.remove('modal-enter-active');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        // --- LÓGICA CORE: CRIAÇÃO E WORKFLOW ---
+        function criarTarefa() {
+            // Validação customizada
+            const limite = document.getElementById('nt-prazo-limite').value;
+            if(!limite) {
+                showToast("O prazo limite é obrigatório!", "error");
+                return;
+            }
+
+            const nova = {
+                id: `TK-${1000 + DB.tarefas.length + 1}`,
+                dataAbertura: new Date().toISOString().split('T')[0],
+                status: 'Aberta', 
+                prioridade: document.getElementById('nt-prioridade').value,
+                titulo: document.getElementById('nt-titulo').value,
+                setorSolicitante: document.getElementById('nt-setor-solicitante').value,
+                setorResponsavel: document.getElementById('nt-setor-resp').value,
+                responsavelId: parseInt(document.getElementById('nt-responsavel').value),
+                obsInicial: document.getElementById('nt-obs-inicial').value,
+                descricao: document.getElementById('nt-descricao').value,
+                resultadoEsperado: document.getElementById('nt-resultado').value,
+                inicioPrevisto: document.getElementById('nt-inicio-prev').value,
+                terminoPrevisto: document.getElementById('nt-termino-prev').value,
+                prazoLimite: limite,
+                obraVinculada: document.getElementById('nt-obra').value,
+                cliente: document.getElementById('nt-cliente').value,
+                local: document.getElementById('nt-local').value,
+                geraCusto: document.getElementById('nt-gera-custo').value,
+                tipoCusto: document.getElementById('nt-tipo-custo').value,
+                valorEstimado: document.getElementById('nt-valor').value,
+                avaliacao: null, conclusao: null, baixa: null
+            };
+            
+            DB.tarefas.unshift(nova);
+            saveDatabase(); // Persiste no LocalStorage
+            
+            closeModal('modal-nova-tarefa');
+            document.getElementById('form-nova-tarefa').reset();
+            toggleFormFields();
+            showToast(`Ficha ${nova.id} criada e enviada para aprovação!`, 'success');
+            
+            navigate(document.querySelector('aside nav button.bg-brand-600').id.replace('nav-', ''));
+        }
+
+        // --- RENDERIZAÇÃO DAS VIEWS ---
+        
+        function renderDashboardData() {
+            document.getElementById('dash-total').innerText = DB.tarefas.length;
+            document.getElementById('dash-execucao').innerText = DB.tarefas.filter(t => t.status === 'Em execução').length;
+            document.getElementById('dash-pendentes').innerText = DB.tarefas.filter(t => t.status === 'Aberta' || t.status === 'Concluída').length;
+            document.getElementById('dash-atraso').innerText = DB.tarefas.filter(t => isOverdue(t.prazoLimite) && t.status !== 'Baixada' && t.status !== 'Cancelada').length;
+
+            const tbody = document.getElementById('dash-table-body');
+            tbody.innerHTML = '';
+            
+            if(DB.tarefas.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400">Nenhum dado registrado.</td></tr>`;
+            } else {
+                DB.tarefas.slice(0, 6).forEach(t => {
+                    const respName = DB.usuarios.find(u => u.id === t.responsavelId)?.nome || '--';
+                    const isLate = isOverdue(t.prazoLimite) && !['Baixada', 'Cancelada'].includes(t.status);
+                    
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 cursor-pointer transition-colors" onclick="abrirDetalhes('${t.id}')">
+                            <td class="py-3 px-4 font-bold text-slate-700">${t.id}</td>
+                            <td class="py-3 px-4 truncate max-w-[150px] font-medium text-slate-800" title="${t.titulo}">${t.titulo}</td>
+                            <td class="py-3 px-4 text-slate-500">${respName}</td>
+                            <td class="py-3 px-4"><span class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase border ${getStatusColor(t.status)}">${t.status}</span></td>
+                            <td class="py-3 px-4 ${isLate ? 'text-red-600 font-bold flex items-center' : 'text-slate-600'}">
+                                ${formatDate(t.prazoLimite)} ${isLate ? '<i data-lucide="alert-triangle" class="w-3 h-3 ml-1"></i>' : ''}
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // Gráfico Chart.js Moderno
+            const ctx = document.getElementById('chartStatus');
+            if(ctx) {
+                if(currentChart) currentChart.destroy();
+                const counts = {};
+                DB.tarefas.forEach(t => counts[t.status] = (counts[t.status] || 0) + 1);
+                
+                currentChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(counts),
+                        datasets: [{ 
+                            data: Object.values(counts), 
+                            backgroundColor: ['#e2e8f0', '#bfdbfe', '#99f6e4', '#fde68a', '#c7d2fe', '#bbf7d0', '#fecaca', '#334155'], 
+                            hoverOffset: 4,
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        cutout: '70%',
+                        plugins: { 
+                            legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: {family: 'Inter', size: 11} } } 
+                        } 
+                    }
+                });
+            }
+            lucide.createIcons();
+        }
+
+        function renderUserTasks() {
+            const grid = document.getElementById('user-tasks-grid');
+            const searchObj = document.getElementById('search-user');
+            const term = searchObj ? searchObj.value.toLowerCase() : '';
+
+            let myTasks = DB.tarefas.filter(t => t.responsavelId === DB.currentUser.id && !['Baixada', 'Cancelada', 'Reprovada'].includes(t.status));
+
+            if(term) {
+                myTasks = myTasks.filter(t => t.titulo.toLowerCase().includes(term) || t.id.toLowerCase().includes(term));
+            }
+
+            grid.innerHTML = '';
+            if(!myTasks.length) {
+                grid.innerHTML = `<div class="col-span-full py-16 flex flex-col items-center justify-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-300">
+                    <i data-lucide="check-circle-2" class="w-12 h-12 mb-3 text-emerald-400 opacity-50"></i>
+                    <p class="font-medium text-slate-500">Sua fila de trabalho está limpa!</p>
+                </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            myTasks.forEach(t => {
+                const isLate = isOverdue(t.prazoLimite);
+                const borderStatus = isLate ? 'border-red-400 shadow-red-500/10' : 'border-slate-200 hover:border-brand-300';
+                
+                grid.innerHTML += `
+                    <div class="bg-white border-2 ${borderStatus} rounded-2xl p-5 shadow-sm hover:shadow-lg transition-all relative flex flex-col group">
+                        ${isLate ? '<div class="absolute -top-3 -right-3 bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-md animate-pulse uppercase tracking-wider">Atrasada</div>' : ''}
+                        
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-xs font-black text-slate-400 bg-slate-100 px-2 py-1 rounded-md">${t.id}</span>
+                            <span class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase border ${getStatusColor(t.status)}">${t.status}</span>
+                        </div>
+                        
+                        <h4 class="font-bold text-slate-800 text-lg leading-tight mb-2 group-hover:text-brand-600 transition-colors">${t.titulo}</h4>
+                        <p class="text-sm text-slate-500 line-clamp-2 mb-5 flex-1">${t.descricao}</p>
+                        
+                        <div class="border-t border-slate-100 pt-4 flex justify-between items-center mt-auto">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Prazo Limite</span>
+                                <span class="text-sm font-bold ${isLate ? 'text-red-600' : 'text-slate-700'} flex items-center">
+                                    <i data-lucide="calendar" class="w-3 h-3 mr-1 opacity-70"></i> ${formatDate(t.prazoLimite)}
+                                </span>
+                            </div>
+                            <button onclick="abrirDetalhes('${t.id}')" class="bg-slate-900 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center">
+                                Abrir Ficha <i data-lucide="arrow-right" class="w-3 h-3 ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function renderAdminTable(filterTab) {
+            currentAdminTab = filterTab;
+            
+            // Controle visual das abas
+            document.querySelectorAll('.admin-tab').forEach(btn => {
+                btn.className = "admin-tab relative px-5 py-3 rounded-lg text-sm font-medium text-slate-500 hover:bg-white hover:text-slate-800 transition-all whitespace-nowrap flex items-center";
+            });
+            
+            const activeClass = "admin-tab relative px-5 py-3 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex items-center bg-white shadow-sm ring-1 ring-slate-200 z-10 ";
+            if(filterTab === 'avaliacao') document.getElementById('tab-avaliacao').className = activeClass + "text-blue-600";
+            if(filterTab === 'baixa') document.getElementById('tab-baixa').className = activeClass + "text-green-600";
+            if(filterTab === 'todas') document.getElementById('tab-todas').className = activeClass + "text-slate-800";
+
+            const tbody = document.getElementById('admin-table-body');
+            const searchObj = document.getElementById('search-admin');
+            const term = searchObj ? searchObj.value.toLowerCase() : '';
+
+            let list = DB.tarefas;
+            if(filterTab === 'avaliacao') list = DB.tarefas.filter(t => t.status === 'Aberta' || t.status === 'Em avaliação');
+            if(filterTab === 'baixa') list = DB.tarefas.filter(t => t.status === 'Concluída');
+
+            if(term) list = list.filter(t => t.titulo.toLowerCase().includes(term) || t.id.toLowerCase().includes(term));
+
+            tbody.innerHTML = '';
+            if(!list.length) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-12 text-center text-slate-400 bg-slate-50/50"><i data-lucide="check-circle" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>Nenhuma ficha encontrada para esta visão.</td></tr>`;
+                lucide.createIcons();
+                return;
+            }
+
+            list.forEach(t => {
+                const respName = DB.usuarios.find(u => u.id === t.responsavelId)?.nome || '--';
+                const isLate = isOverdue(t.prazoLimite) && !['Baixada', 'Cancelada'].includes(t.status);
+                
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50/80 transition-colors border-b border-slate-100 group">
+                        <td class="py-4 px-6">
+                            <p class="font-black text-slate-800 text-sm mb-0.5 group-hover:text-brand-600 transition-colors">${t.id}</p>
+                            <p class="text-xs text-slate-500 truncate max-w-[250px]" title="${t.titulo}">${t.titulo}</p>
+                        </td>
+                        <td class="py-4 px-6">
+                            <p class="text-xs text-slate-700 font-semibold flex items-center mb-0.5" title="Solicitante"><i data-lucide="arrow-up-right" class="w-3 h-3 mr-1 text-slate-400"></i> ${t.setorSolicitante}</p>
+                            <p class="text-xs text-slate-500 flex items-center" title="Executor"><i data-lucide="user" class="w-3 h-3 mr-1 text-brand-400"></i> ${respName}</p>
+                        </td>
+                        <td class="py-4 px-6"><span class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase border ${getStatusColor(t.status)} shadow-sm">${t.status}</span></td>
+                        <td class="py-4 px-6 text-xs">
+                            <div class="flex flex-col gap-1">
+                                <span class="text-slate-500">Início: <span class="font-medium text-slate-700">${formatDate(t.inicioPrevisto)}</span></span>
+                                <span class="${isLate ? 'text-red-600 font-bold bg-red-50 inline-block px-1 rounded' : 'text-slate-500'}">Limite: ${formatDate(t.prazoLimite)}</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <button onclick="abrirDetalhes('${t.id}')" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-brand-50 hover:text-brand-600 hover:border-brand-300 transition-all shadow-sm">
+                                ${filterTab === 'todas' ? 'Visualizar' : 'Analisar Ficha'}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        // --- MESA DE TRABALHO: DETALHES E WORKFLOW (SENIOR UI) ---
+        function abrirDetalhes(id) {
+            const t = DB.tarefas.find(x => x.id === id);
+            if(!t) return;
+
+            const content = document.getElementById('modal-detalhes-content');
+            const respName = DB.usuarios.find(u => u.id === t.responsavelId)?.nome || '--';
+            const isAdmin = DB.currentUser.role === 'admin';
+            const isOwner = DB.currentUser.id === t.responsavelId;
+
+            // Determinar o ponto atual na timeline visual
+            const steps = ['Aberta', 'Aprovada', 'Em execução', 'Concluída', 'Baixada'];
+            let currentStepIndex = steps.indexOf(t.status);
+            if(t.status === 'Em avaliação') currentStepIndex = 0;
+            if(t.status === 'Reprovada' || t.status === 'Cancelada') currentStepIndex = -1; // Estado de erro
+
+            const getDotColor = (index) => {
+                if (currentStepIndex === -1) return 'bg-red-500 ring-red-200'; // Erro/Cancelada
+                if (index < currentStepIndex) return 'bg-brand-500 ring-brand-100'; // Passou
+                if (index === currentStepIndex) return 'bg-amber-500 ring-amber-200 animate-pulse'; // Atual
+                return 'bg-slate-200 ring-slate-50'; // Futuro
+            };
+
+            // HTML Master do Modal
+            let html = `
+                <!-- Header do Modal -->
+                <div class="flex justify-between items-center p-5 border-b border-slate-700 bg-slate-900 text-white flex-shrink-0 relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-brand-400 via-slate-900 to-slate-900"></div>
+                    <div class="relative z-10 flex items-center gap-4">
+                        <div class="bg-slate-800 p-2.5 rounded-lg border border-slate-700"><i data-lucide="file-text" class="w-6 h-6 text-brand-400"></i></div>
+                        <div>
+                            <div class="flex items-center gap-3 mb-1">
+                                <span class="text-xs font-black text-slate-400 tracking-widest bg-slate-800 px-2 py-0.5 rounded">${t.id}</span>
+                                <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase border ${getStatusColor(t.status)} shadow-sm">${t.status}</span>
+                            </div>
+                            <h2 class="text-xl font-bold leading-tight">${t.titulo}</h2>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('modal-detalhes')" class="relative z-10 text-slate-400 hover:text-white bg-slate-800 hover:bg-red-500 p-2 rounded-full transition-all"><i data-lucide="x"></i></button>
                 </div>
-                <div>
-                  <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Dias Restantes</p>
-                  <p :class="urgenciaDiasClass(doc)" x-text="formatDiasTexto(doc)"></p>
-                </div>
-              </div>
-            </div>
-          </template>
-          <template x-if="filteredDocumentos.length === 0">
-             <div class="text-center py-8 text-slate-400 italic border-2 border-dashed border-slate-200 rounded-xl">Nenhum documento encontrado.</div>
-          </template>
-        </div>
-      </div>
-    </section>
-  </main>
+                
+                <div class="flex-1 overflow-y-auto bg-slate-50 flex flex-col lg:flex-row custom-scrollbar">
+                    
+                    <!-- LADO ESQUERDO: INFORMAÇÕES ESTÁTICAS (Blocos 1, 2 e 3) -->
+                    <div class="w-full lg:w-[55%] p-6 lg:p-8 space-y-8 border-r border-slate-200 bg-white">
+                        
+                        <!-- Timeline Horizontal Minimalista -->
+                        <div class="mb-8 hidden sm:block">
+                            <p class="text-[10px] uppercase font-bold text-slate-400 mb-3 tracking-widest">Progresso da Ficha</p>
+                            <div class="flex items-center justify-between relative">
+                                <div class="absolute left-0 right-0 top-1/2 h-0.5 bg-slate-200 -z-10 -translate-y-1/2"></div>
+                                <div class="flex flex-col items-center gap-1 bg-white px-2"><div class="w-3 h-3 rounded-full ring-4 ${getDotColor(0)}"></div><span class="text-[9px] font-bold text-slate-500 uppercase">Criada</span></div>
+                                <div class="flex flex-col items-center gap-1 bg-white px-2"><div class="w-3 h-3 rounded-full ring-4 ${getDotColor(1)}"></div><span class="text-[9px] font-bold text-slate-500 uppercase">Avaliada</span></div>
+                                <div class="flex flex-col items-center gap-1 bg-white px-2"><div class="w-3 h-3 rounded-full ring-4 ${getDotColor(2)}"></div><span class="text-[9px] font-bold text-slate-500 uppercase">Execução</span></div>
+                                <div class="flex flex-col items-center gap-1 bg-white px-2"><div class="w-3 h-3 rounded-full ring-4 ${getDotColor(3)}"></div><span class="text-[9px] font-bold text-slate-500 uppercase">Concluída</span></div>
+                                <div class="flex flex-col items-center gap-1 bg-white px-2"><div class="w-3 h-3 rounded-full ring-4 ${getDotColor(4)}"></div><span class="text-[9px] font-bold text-slate-500 uppercase">Baixada</span></div>
+                            </div>
+                        </div>
 
-  <!-- PAINEL DE NOTIFICAÇÕES -->
-  <div x-show="showNotificationsPanel" x-cloak class="fixed inset-0 z-[55]">
-    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-         x-show="showNotificationsPanel"
-         x-transition.opacity.duration.300ms
-         @click="closeNotificationsPanel()"></div>
+                        <!-- Detalhes em grade -->
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2 flex items-center"><i data-lucide="tag" class="w-4 h-4 mr-2 text-slate-400"></i> Metadados (Blocos 1 e 3)</h3>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div><span class="text-slate-500 block text-[10px] uppercase font-bold">Abertura</span><span class="font-medium text-slate-800">${formatDate(t.dataAbertura)}</span></div>
+                                <div><span class="text-slate-500 block text-[10px] uppercase font-bold">Prioridade</span><span class="font-medium text-slate-800">${t.prioridade}</span></div>
+                                <div><span class="text-red-500 block text-[10px] uppercase font-bold">Prazo Limite</span><span class="font-black text-red-600 bg-red-50 px-2 py-0.5 rounded">${formatDate(t.prazoLimite)}</span></div>
+                                
+                                <div><span class="text-slate-500 block text-[10px] uppercase font-bold">Solicitante</span><span class="font-medium text-slate-800">${t.setorSolicitante}</span></div>
+                                <div class="sm:col-span-2"><span class="text-slate-500 block text-[10px] uppercase font-bold">Responsável</span><span class="font-medium text-slate-800">${t.setorResponsavel} / ${respName}</span></div>
+                                
+                                <div><span class="text-slate-500 block text-[10px] uppercase font-bold">Prev. Início</span><span class="font-medium text-slate-800">${formatDate(t.inicioPrevisto)}</span></div>
+                                <div><span class="text-slate-500 block text-[10px] uppercase font-bold">Prev. Fim</span><span class="font-medium text-slate-800">${formatDate(t.terminoPrevisto)}</span></div>
+                                <div><span class="text-slate-500 block text-[10px] uppercase font-bold">Vínculo / Custos</span><span class="font-medium text-slate-800 text-xs">${t.obraVinculada} ${t.cliente ? `(${t.cliente})` : ''} <br> ${t.geraCusto === 'Sim' ? `${t.tipoCusto} (R$ ${t.valorEstimado})` : 'Sem Custo'}</span></div>
+                            </div>
+                        </div>
 
-    <aside class="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl flex flex-col overscroll-contain"
-           x-show="showNotificationsPanel"
-           x-transition:enter="transform transition ease-out duration-300"
-           x-transition:enter-start="translate-x-full"
-           x-transition:enter-end="translate-x-0"
-           x-transition:leave="transform transition ease-in duration-200"
-           x-transition:leave-start="translate-x-0"
-           x-transition:leave-end="translate-x-full">
-      <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 sm:px-6 py-4 sticky top-0 z-10 shadow-sm">
-        <div>
-          <h3 class="text-base sm:text-lg font-bold text-slate-800">Notificações</h3>
-          <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Alterações registradas nos últimos 3 meses</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <button type="button" @click="closeNotificationsPanel()"
-                  class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors focus:outline-none">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      </div>
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2 flex items-center"><i data-lucide="align-left" class="w-4 h-4 mr-2 text-slate-400"></i> O que deve ser feito (Bloco 2)</h3>
+                            ${t.obsInicial ? `<div class="mb-4 bg-blue-50 border border-blue-100 p-3 rounded-lg"><span class="text-blue-600 block text-[10px] uppercase font-bold mb-1">Contexto Inicial</span><span class="italic text-slate-700 text-sm">"${t.obsInicial}"</span></div>` : ''}
+                            <p class="text-sm text-slate-700 bg-white border border-slate-200 p-4 rounded-xl leading-relaxed whitespace-pre-wrap">${t.descricao}</p>
+                            
+                            <div class="mt-4 bg-emerald-50 border border-emerald-100 p-4 rounded-xl flex items-start">
+                                <i data-lucide="target" class="w-5 h-5 text-emerald-500 mr-3 mt-0.5 flex-shrink-0"></i>
+                                <div>
+                                    <span class="font-bold text-emerald-800 block text-[10px] uppercase tracking-widest mb-1">Critério de Aceite (Resultado Esperado)</span>
+                                    <span class="text-sm font-medium text-emerald-900">${t.resultadoEsperado}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-      <div class="p-4 sm:p-6 space-y-4 flex-1">
-        <template x-if="notificationsErrorMessage">
-          <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 shadow-sm">
-            <p class="font-semibold text-rose-800">Falha ao carregar notificações</p>
-            <p class="mt-1" x-text="notificationsErrorMessage"></p>
-          </div>
-        </template>
+                    <!-- LADO DIREITO: ÁREA DE TRABALHO E TIMELINE DE AÇÕES (Blocos 4, 5 e 6) -->
+                    <div class="w-full lg:w-[45%] p-6 lg:p-8 space-y-6 relative">
+            `;
 
-        <template x-if="notificationsLoading">
-          <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 shadow-sm">
-            Carregando notificações...
-          </div>
-        </template>
+            // Construção dos Blocos de Ação e Histórico
+            // Bloco 4 (Avaliação)
+            if (t.avaliacao) {
+                html += `
+                    <div class="relative pl-6 pb-6">
+                        <div class="absolute left-1.5 top-8 bottom-0 w-0.5 bg-blue-200"></div>
+                        <div class="absolute left-0 top-1 w-3.5 h-3.5 rounded-full bg-blue-500 ring-4 ring-white"></div>
+                        <h4 class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">4. Avaliação Direção</h4>
+                        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-sm">
+                            <p class="mb-1"><span class="font-bold text-slate-700">${t.avaliacao.encaminhamento}</span> por ${t.avaliacao.aprovador}</p>
+                            <p class="text-xs text-slate-500 mb-2"><i data-lucide="calendar" class="inline w-3 h-3 mr-1"></i>${formatDate(t.avaliacao.data)}</p>
+                            ${t.avaliacao.observacoes ? `<div class="bg-slate-50 p-2 rounded border border-slate-100 italic text-slate-600 text-xs">"${t.avaliacao.observacoes}"</div>` : ''}
+                        </div>
+                    </div>`;
+            } else if (isAdmin && t.status === 'Aberta') {
+                html += `
+                    <div class="relative pl-6 pb-6">
+                        <div class="absolute left-0 top-1 w-3.5 h-3.5 rounded-full bg-blue-500 ring-4 ring-blue-100 animate-pulse"></div>
+                        <h4 class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-3">4. Ação: Avaliar Ficha</h4>
+                        <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 shadow-sm">
+                            <select id="act-encaminhamento" class="w-full border border-blue-300 rounded-lg p-2.5 text-sm mb-3 bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="Aprovada">Aprovar Ficha para Execução</option>
+                                <option value="Aprovada com ajustes">Aprovar com Ressalvas</option>
+                                <option value="Reprovada">Reprovar / Cancelar</option>
+                            </select>
+                            <textarea id="act-obs-direcao" rows="2" placeholder="Observações da direção..." class="w-full border border-blue-300 rounded-lg p-3 text-sm mb-4 outline-none resize-none"></textarea>
+                            <button onclick="executarAcao('${t.id}', 'avaliar')" class="w-full py-2.5 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md flex items-center justify-center">
+                                <i data-lucide="check-square" class="w-4 h-4 mr-2"></i> Registrar Decisão
+                            </button>
+                        </div>
+                    </div>`;
+            }
 
-        <template x-if="!notificationsLoading && notificacoes.length === 0">
-          <div class="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-6 text-center shadow-sm">
-            <p class="text-sm font-semibold text-slate-600">Nenhuma notificação recente.</p>
-            <p class="mt-1 text-xs text-slate-400">Novas mudanças de status aparecerão aqui automaticamente.</p>
-          </div>
-        </template>
+            // Bloco 5 (Conclusão)
+            if (t.conclusao) {
+                html += `
+                    <div class="relative pl-6 pb-6">
+                        <div class="absolute left-1.5 top-8 bottom-0 w-0.5 bg-indigo-200"></div>
+                        <div class="absolute left-0 top-1 w-3.5 h-3.5 rounded-full bg-indigo-500 ring-4 ring-white"></div>
+                        <h4 class="text-xs font-bold text-indigo-600 uppercase tracking-widest mb-2">5. Execução e Conclusão</h4>
+                        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-sm">
+                            <p class="mb-1"><span class="font-bold text-slate-700">Entregue</span> por ${t.conclusao.informante}</p>
+                            <p class="text-xs text-slate-500 mb-3"><i data-lucide="calendar" class="inline w-3 h-3 mr-1"></i>${formatDate(t.conclusao.data)}</p>
+                            <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 text-slate-700 text-sm whitespace-pre-wrap"><strong>Relatório:</strong><br>${t.conclusao.resumo}</div>
+                        </div>
+                    </div>`;
+            } else if (isOwner && (t.status === 'Aprovada' || t.status === 'Em execução')) {
+                if(t.status === 'Aprovada') {
+                    html += `
+                        <div class="relative pl-6 pb-6">
+                            <div class="absolute left-0 top-1 w-3.5 h-3.5 rounded-full bg-amber-500 ring-4 ring-amber-100 animate-pulse"></div>
+                            <h4 class="text-xs font-bold text-amber-600 uppercase tracking-widest mb-3">5. Ação: Iniciar Trabalho</h4>
+                            <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center shadow-sm">
+                                <i data-lucide="play-circle" class="w-12 h-12 mx-auto text-amber-400 mb-3"></i>
+                                <h3 class="text-sm font-bold text-amber-800 mb-2">Pronto para começar?</h3>
+                                <p class="text-xs text-amber-700 mb-5">Alerte a equipe que você assumiu esta atividade clicando abaixo.</p>
+                                <button onclick="executarAcao('${t.id}', 'iniciar')" class="px-6 py-2.5 bg-amber-500 text-white text-sm font-bold rounded-lg hover:bg-amber-600 shadow-md w-full transition-all hover:scale-[1.02]">
+                                    Iniciar Execução Agora
+                                </button>
+                            </div>
+                        </div>`;
+                } else {
+                    html += `
+                        <div class="relative pl-6 pb-6">
+                            <div class="absolute left-0 top-1 w-3.5 h-3.5 rounded-full bg-indigo-500 ring-4 ring-indigo-100 animate-pulse"></div>
+                            <h4 class="text-xs font-bold text-indigo-600 uppercase tracking-widest mb-3">5. Ação: Entregar Ficha</h4>
+                            <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-5 shadow-sm">
+                                <label class="block text-xs font-bold text-indigo-900 mb-1.5">Relatório de Conclusão <span class="text-red-500">*</span></label>
+                                <textarea id="act-resumo" rows="3" placeholder="Detalhe o que foi resolvido e se o critério de aceite foi atingido..." required class="w-full border border-indigo-300 rounded-lg p-3 text-sm mb-3 outline-none resize-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                                <label class="flex items-center text-xs font-medium text-slate-700 mb-4 cursor-pointer p-2 bg-white rounded-lg border border-slate-200 hover:bg-slate-50">
+                                    <input type="checkbox" id="act-evid" class="mr-3 w-4 h-4 text-brand-600 rounded">
+                                    Confirmo que as evidências (fotos/docs) foram anexadas fisicamente ou na pasta da rede.
+                                </label>
+                                <button onclick="executarAcao('${t.id}', 'concluir')" class="w-full py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-md flex items-center justify-center">
+                                    <i data-lucide="send" class="w-4 h-4 mr-2"></i> Enviar Ficha para Baixa
+                                </button>
+                            </div>
+                        </div>`;
+                }
+            }
 
-        <div class="space-y-3" x-show="!notificationsLoading && notificacoes.length > 0">
-          <template x-for="item in notificacoes" :key="item.id">
-            <button type="button"
-                    @click.prevent.stop="openNotificationDocument(item)"
-                    @keydown.enter.prevent.stop="openNotificationDocument(item)"
-                    @keydown.space.prevent.stop="openNotificationDocument(item)"
-                    :class="notificationItemClass(item)"
-                    class="w-full cursor-pointer rounded-2xl border p-4 text-left shadow-sm transition-all focus:outline-none focus:ring-2">
-              <div class="flex items-start gap-3">
-                <div :class="notificationIconWrapClass(item)"
-                     class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"
-                       :class="notificationIconClass(item)">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75h6.879a3 3 0 012.122.879l2.87 2.871A3 3 0 0120.25 9.621V18a2.25 2.25 0 01-2.25 2.25h-10.5A2.25 2.25 0 015.25 18V6A2.25 2.25 0 017.5 3.75z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.75 9.75h6.5M8.75 13h6.5M8.75 16.25h4.5" />
-                  </svg>
-                </div>
+            // Bloco 6 (Baixa)
+            if (t.baixa) {
+                html += `
+                    <div class="relative pl-6 pb-2">
+                        <div class="absolute left-0 top-1 w-3.5 h-3.5 rounded-full bg-green-500 ring-4 ring-white"></div>
+                        <h4 class="text-xs font-bold text-green-600 uppercase tracking-widest mb-2">6. Encerramento</h4>
+                        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-sm">
+                            <p class="mb-1"><span class="font-bold text-slate-700">Baixa Aprovada</span> por ${t.baixa.responsavel}</p>
+                            <p class="text-xs text-slate-500 mb-3"><i data-lucide="calendar" class="inline w-3 h-3 mr-1"></i>${formatDate(t.baixa.data)}</p>
+                            <div class="bg-green-50 p-3 rounded-lg border border-green-100 italic text-slate-700 text-sm">"${t.baixa.parecer}"</div>
+                            <div class="mt-4 pt-3 border-t border-slate-100 text-center">
+                                <span class="inline-flex items-center px-4 py-1.5 bg-slate-800 text-white font-bold rounded-full text-[10px] uppercase tracking-widest shadow-sm">
+                                    <i data-lucide="lock" class="w-3 h-3 mr-2"></i> Ficha Arquivada
+                                </span>
+                            </div>
+                        </div>
+                    </div>`;
+            } else if (isAdmin && t.status === 'Concluída') {
+                html += `
+                    <div class="relative pl-6 pb-2">
+                        <div class="absolute left-0 top-1 w-3.5 h-3.5 rounded-full bg-green-500 ring-4 ring-green-100 animate-pulse"></div>
+                        <h4 class="text-xs font-bold text-green-600 uppercase tracking-widest mb-3">6. Ação: Baixa Definitiva</h4>
+                        <div class="bg-green-50 border border-green-200 rounded-xl p-5 shadow-sm">
+                            <label class="block text-xs font-bold text-green-900 mb-1.5">Parecer da Direção <span class="text-red-500">*</span></label>
+                            <textarea id="act-parecer" rows="2" placeholder="Avaliação final sobre a entrega..." class="w-full border border-green-300 rounded-lg p-3 text-sm mb-4 outline-none resize-none focus:ring-2 focus:ring-green-500"></textarea>
+                            <div class="flex gap-3">
+                                <button onclick="executarAcao('${t.id}', 'reabrir')" class="w-1/3 py-2.5 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all flex flex-col items-center justify-center">
+                                    <i data-lucide="corner-up-left" class="w-4 h-4 mb-1"></i> Devolver
+                                </button>
+                                <button onclick="executarAcao('${t.id}', 'baixar')" class="w-2/3 py-2.5 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-all shadow-md flex items-center justify-center">
+                                    <i data-lucide="check-circle-2" class="w-5 h-5 mr-2"></i> Autorizar Baixa
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+            } else if (!t.baixa) {
+                 // Cadeado mostrando que a etapa ainda não chegou
+                 html += `
+                 <div class="relative pl-6 pb-2 opacity-40 grayscale">
+                     <div class="absolute left-0 top-1 w-3 h-3 rounded-full bg-slate-300"></div>
+                     <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center"><i data-lucide="lock" class="w-3 h-3 mr-1"></i> Etapa Futura</h4>
+                     <div class="bg-slate-100 border border-slate-200 rounded-xl p-4 text-xs text-center italic text-slate-400">Aguardando preenchimento das etapas anteriores...</div>
+                 </div>`;
+            }
 
-                <div class="min-w-0 flex-1">
-                  <p :class="notificationTitleClass(item)"
-                     class="font-semibold leading-snug transition-colors"
-                     x-text="item.apelido || item.documento || 'Documento sem identificação'"></p>
-                  <p :class="notificationTextClass(item)"
-                     class="mt-1 text-sm leading-relaxed transition-colors"
-                     x-text="textoNotificacaoRapida(item)"></p>
-                  <p :class="notificationDateClass(item)"
-                     class="mt-2 text-xs transition-colors"
-                     x-text="formatNotificationDate(item.data_evento)"></p>
-                </div>
-              </div>
-            </button>
-          </template>
-        </div>
-      </div>
-    </aside>
-  </div>
+            html += `</div></div>`; // Fecha colunas
+            content.innerHTML = html;
+            lucide.createIcons({ root: content });
+            openModal('modal-detalhes');
+        }
 
-  <!-- MODAL SECUNDÁRIO: EXPORTAÇÃO -->
-  <div x-show="showExportModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
-    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
-         x-show="showExportModal"
-         x-transition.opacity.duration.300ms
-         @click="showExportModal = false"></div>
+        // --- MÁQUINA DE ESTADOS DO WORKFLOW ---
+        function executarAcao(id, acao) {
+            const t = DB.tarefas.find(x => x.id === id);
+            const hoje = new Date().toISOString().split('T')[0];
 
-    <div class="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl overflow-hidden"
-         x-show="showExportModal"
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0 translate-y-8 sm:translate-y-0 sm:scale-95"
-         x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-         x-transition:leave-end="opacity-0 translate-y-8 sm:translate-y-0 sm:scale-95">
-      
-      <div class="mb-5 flex items-center justify-between">
-        <h3 class="text-lg font-bold text-slate-800">Exportar Relatório</h3>
-        <button type="button" @click="showExportModal = false" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors focus:outline-none">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-        </button>
-      </div>
+            if (acao === 'avaliar') {
+                const encam = document.getElementById('act-encaminhamento').value;
+                t.avaliacao = { data: hoje, aprovador: DB.currentUser.nome, encaminhamento: encam, observacoes: document.getElementById('act-obs-direcao').value };
+                t.status = encam === 'Reprovada' ? 'Reprovada' : 'Aprovada';
+                showToast(`Ficha ${encam.toLowerCase()}!`, encam === 'Reprovada' ? 'error' : 'success');
+            } 
+            else if (acao === 'iniciar') {
+                t.status = 'Em execução';
+                showToast('Execução iniciada. Bom trabalho!', 'info');
+            }
+            else if (acao === 'concluir') {
+                const res = document.getElementById('act-resumo').value;
+                if(!res) { showToast('O relatório de execução é obrigatório.', 'error'); return; }
+                t.conclusao = { data: hoje, informante: DB.currentUser.nome, resumo: res, evidencia: document.getElementById('act-evid').checked ? 'Sim' : 'Não' };
+                t.status = 'Concluída';
+                showToast('Ficha enviada para baixa da direção.', 'success');
+            }
+            else if (acao === 'baixar') {
+                const par = document.getElementById('act-parecer').value;
+                if(!par) { showToast('Escreva o parecer final antes de baixar.', 'error'); return; }
+                t.baixa = { data: hoje, responsavel: DB.currentUser.nome, parecer: par };
+                t.status = 'Baixada';
+                showToast('Ficha encerrada e arquivada com sucesso.', 'success');
+            }
+            else if (acao === 'reabrir') {
+                const par = document.getElementById('act-parecer').value;
+                if(!par) { showToast('Justifique a devolução no campo parecer.', 'error'); return; }
+                t.conclusao = null; // Invalida a conclusão
+                t.status = 'Em execução'; // Volta pro técnico
+                showToast('Ficha devolvida ao executor para correções.', 'error');
+            }
 
-      <p class="mb-6 text-sm text-slate-500 leading-relaxed">Escolha o formato para partilhar o panorama atual do sistema:</p>
+            // Persiste no LocalStorage após qualquer ação
+            saveDatabase();
+            
+            closeModal('modal-detalhes');
+            
+            // Recarrega a View Atual inteligentemente
+            const view = document.querySelector('aside nav button.bg-brand-600').id.replace('nav-', '');
+            navigate(view);
+            if(view === 'admin') {
+                // Se o admin aprovar, a ficha sai da fila de avaliação e vai para execução (some do painel admin)
+                // Se o admin der baixa, recarrega a aba de baixas para atualizar
+                renderAdminTable(currentAdminTab);
+            }
+        }
 
-      <div class="space-y-3">
-        <button type="button" @click="exportarCSV()" class="flex w-full items-center justify-center gap-2.5 rounded-xl bg-slate-800 px-4 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-slate-700 hover:shadow-lg active:scale-[0.98]">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-          Planilha Excel (.CSV)
-        </button>
+        // --- RECURSO EXTRA: EXPORTAR PARA CSV ---
+        function gerarRelatorioCSV() {
+            if(DB.tarefas.length === 0) {
+                showToast('Não há dados para exportar.', 'info'); return;
+            }
 
-        <button type="button" @click="exportarWhatsApp()" class="flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#25D366] px-4 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[#1ebd5a] hover:shadow-lg active:scale-[0.98]">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>
-          Resumo no WhatsApp
-        </button>
-      </div>
-    </div>
-  </div>
+            let csvContent = "data:text/csv;charset=utf-8,";
+            // Cabeçalho Baseado no Ficha A4 Original
+            csvContent += "ID,Data Abertura,Prioridade,Status Atual,Setor Solicitante,Setor Responsável,Executor,Título,Prazo Limite,Aprovador (Sec 4),Entregue Em (Sec 5),Baixado Por (Sec 6)\r\n";
 
-  
-<!-- MODAL PRINCIPAL: DETALHES DO DOCUMENTO -->
-<div x-show="selected" x-cloak class="fixed inset-0 z-40">
-  <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm touch-none"
-       x-show="selected"
-       x-transition.opacity.duration.300ms
-       @click="selected = null"></div>
+            DB.tarefas.forEach(t => {
+                const executor = DB.usuarios.find(u => u.id === t.responsavelId)?.nome || '';
+                const aprovador = t.avaliacao ? t.avaliacao.aprovador : '';
+                const conclData = t.conclusao ? formatDate(t.conclusao.data) : '';
+                const baixador = t.baixa ? t.baixa.responsavel : '';
 
-  <aside class="absolute right-0 top-0 h-full w-full max-w-[760px] overflow-y-auto bg-white shadow-2xl flex flex-col overscroll-contain border-l border-slate-200"
-         x-show="selected"
-         x-transition:enter="transform transition ease-out duration-300"
-         x-transition:enter-start="translate-x-full"
-         x-transition:enter-end="translate-x-0"
-         x-transition:leave="transform transition ease-in duration-200"
-         x-transition:leave-start="translate-x-0"
-         x-transition:leave-end="translate-x-full">
+                // Trata aspas e vírgulas para o CSV
+                const clean = (str) => `"${(str||'').toString().replace(/"/g, '""')}"`;
 
-    <div class="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div class="flex items-start justify-between gap-4 px-5 sm:px-7 py-5">
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-2 text-slate-400">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75h7.086a2.25 2.25 0 011.591.659l2.164 2.164a2.25 2.25 0 01.659 1.591V19.5A2.25 2.25 0 0116.75 21.75h-9.5A2.25 2.25 0 015 19.5v-13.5A2.25 2.25 0 017.25 3.75z" />
-            </svg>
-            <p class="text-[11px] font-bold uppercase tracking-[0.2em]">Ficha do Documento</p>
-          </div>
-          <h3 class="mt-2 font-bold tracking-tight text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis"
-              :class="selected && (selected.apelido || selected.documento || '').length > 34 ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-3xl'"
-              :title="selected ? (selected.apelido || selected.documento || '-') : '-'"
-              x-text="selected ? (selected.apelido || selected.documento || '-') : '-'"></h3>
-          <p class="mt-1 text-sm text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis"
-             :title="selected ? (selected.tipo_doc || selected.tipo_documento || selected.tipoDocumento || 'Sem tipo especificado') : '-'"
-             x-text="selected ? (selected.tipo_doc || selected.tipo_documento || selected.tipoDocumento || 'Sem tipo especificado') : '-'"></p>
-        </div>
+                const row = [
+                    t.id, formatDate(t.dataAbertura), t.prioridade, t.status, 
+                    clean(t.setorSolicitante), clean(t.setorResponsavel), clean(executor), 
+                    clean(t.titulo), formatDate(t.prazoLimite), clean(aprovador), conclData, clean(baixador)
+                ].join(",");
 
-        <button type="button" @click="selected = null"
-                class="shrink-0 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-900 hover:shadow-md">
-          <span>&larr;</span>
-          <span>Voltar</span>
-        </button>
-      </div>
-    </div>
+                csvContent += row + "\r\n";
+            });
 
-    <div class="px-5 sm:px-7 py-6 sm:py-7 space-y-6">
-      <section class="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 sm:p-6 shadow-sm">
-        <div class="space-y-4">
-          <div>
-            <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis"
-               :title="selected ? (selected.orgao_expeditor || selected.orgaoExpeditor || 'Órgão não informado') : '-'"
-               x-text="selected ? (selected.orgao_expeditor || selected.orgaoExpeditor || 'Órgão não informado') : '-'"></p>
-            <p class="mt-2 font-black tracking-tight text-slate-950 whitespace-nowrap overflow-hidden text-ellipsis"
-               :class="selected && (selected.documento || '').length > 28 ? 'text-2xl sm:text-3xl' : 'text-[2.1rem] sm:text-[2.65rem]'"
-               :title="selected ? (selected.documento || '-') : '-'"
-               x-text="selected ? (selected.documento || '-') : '-'"></p>
-          </div>
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Relatorio_Tatico_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('Relatório CSV exportado com sucesso!', 'success');
+        }
 
-          <div class="flex flex-wrap items-center gap-3">
-            <span class="inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold shadow-sm transition-all"
-                  :class="badgeClass(selected)"
-                  x-text="labelStatus(selected)">
-            </span>
-
-            <span class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm"
-                  :class="urgenciaDiasClass(selected)"
-                  x-text="formatDiasTexto(selected)">
-            </span>
-
-            <template x-if="selected && selected.categoria">
-              <span class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm font-medium text-slate-600 shadow-sm whitespace-nowrap"
-                    x-text="selected.categoria"></span>
-            </template>
-          </div>
-        </div>
-      </section>
-
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
-        <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
-          <div class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <div>
-            <h4 class="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Controle de Prazos</h4>
-            <p class="text-[11px] text-slate-400">Leitura rápida das datas principais</p>
-          </div>
-        </div>
-
-        <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm transition-all hover:shadow-md">
-            <div class="flex items-center gap-2 text-slate-400">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10" />
-              </svg>
-              <p class="text-[10px] font-bold uppercase tracking-[0.14em]">Emissão</p>
-            </div>
-            <p class="mt-3 text-lg sm:text-xl font-bold tracking-tight text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis"
-               x-text="formatDate(selected ? selected.emissao : null)"></p>
-          </div>
-
-          <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm transition-all hover:shadow-md">
-            <div class="flex items-center gap-2 text-slate-400">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-              <p class="text-[10px] font-bold uppercase tracking-[0.14em]">Vencimento</p>
-            </div>
-            <p class="mt-3 text-lg sm:text-xl font-bold tracking-tight text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis"
-               x-text="formatDate(selected ? selected.vencimento : null)"></p>
-          </div>
-
-          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md">
-            <div class="flex items-center gap-2 text-slate-400">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
-              </svg>
-              <p class="text-[10px] font-bold uppercase tracking-[0.14em]">Última Renovação</p>
-            </div>
-            <p class="mt-3 text-base sm:text-lg font-semibold tracking-tight text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis"
-               x-text="formatDate(selected ? (selected.data_renovacao || selected.dataRenovacao) : null)"></p>
-          </div>
-
-          <div class="rounded-xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm transition-all hover:shadow-md">
-            <div class="flex items-center gap-2 text-blue-600">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-              </svg>
-              <p class="text-[10px] font-bold uppercase tracking-[0.14em]">Agendar Renovação</p>
-            </div>
-            <p class="mt-3 text-lg sm:text-xl font-black tracking-tight text-blue-700 whitespace-nowrap overflow-hidden text-ellipsis"
-               x-text="formatDate(selected ? selected.data_sugerida_renovacao : null)"></p>
-            <p class="mt-1 text-[11px] font-medium text-blue-500 whitespace-nowrap overflow-hidden text-ellipsis"
-               x-text="'Aviso ' + (selected ? (selected.renova_antes || 0) : 0) + ' dias antes'"></p>
-          </div>
-        </div>
-      </section>
-
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
-        <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
-          <div class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M5 19h14a2 2 0 002-2V7" />
-            </svg>
-          </div>
-          <div>
-            <h4 class="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Informações de Registo</h4>
-            <p class="text-[11px] text-slate-400">Dados complementares do documento</p>
-          </div>
-        </div>
-
-        <div class="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div class="space-y-5">
-            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 shadow-sm">
-              <div class="flex items-center gap-2 text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10M7 12h10M7 17h6" />
-                </svg>
-                <p class="text-[11px] font-bold uppercase tracking-[0.18em]">Categoria</p>
-              </div>
-              <p class="mt-3 inline-flex max-w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis shadow-sm"
-                 :title="selected ? (selected.categoria || 'Não classificado') : '-'"
-                 x-text="selected ? (selected.categoria || 'Não classificado') : '-'"></p>
-            </div>
-
-            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 shadow-sm">
-              <div class="flex items-center gap-2 text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M14 3h7m0 0v7m0-7L10 14" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 5h5v5H5zM5 14h5v5H5z" />
-                </svg>
-                <p class="text-[11px] font-bold uppercase tracking-[0.18em]">Acesso Externo / Site</p>
-              </div>
-
-              <div class="mt-3">
-                <template x-if="selected && selected.site">
-                  <a :href="selected.site" target="_blank"
-                     class="inline-flex max-w-full items-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-medium text-blue-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800"
-                     title="Abrir ligação no navegador">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H19m0 0v5.5m0-5.5L10 15" />
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 7.5h3m-3 0A2.25 2.25 0 005.25 9.75v8.5A2.25 2.25 0 007.5 20.5h8.5a2.25 2.25 0 002.25-2.25v-3" />
-                    </svg>
-                    <span class="truncate" x-text="selected.site"></span>
-                  </a>
-                </template>
-                <template x-if="!selected || !selected.site">
-                  <p class="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400 shadow-sm">Nenhum link fornecido</p>
-                </template>
-              </div>
-            </div>
-          </div>
-
-          <div class="space-y-5">
-            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 shadow-sm">
-              <div class="flex items-center gap-2 text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6M9 16h6M9 8h6M5 5h14v14H5z" />
-                </svg>
-                <p class="text-[11px] font-bold uppercase tracking-[0.18em]">Descrição Interna</p>
-              </div>
-              <p class="mt-3 text-sm leading-relaxed text-slate-600 bg-white border border-slate-200 p-4 rounded-lg shadow-sm"
-                 x-text="selected ? (selected.descricao || 'Nenhuma descrição detalhada foi fornecida para este registo.') : 'Sem descrição cadastrada.'"></p>
-            </div>
-
-            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 shadow-sm">
-              <div class="flex items-center gap-2 text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5l9-4 9 4-9 4-9-4z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.5l-9 4-9-4" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 17.5l-9 4-9-4" />
-                </svg>
-                <p class="text-[11px] font-bold uppercase tracking-[0.18em]">Diretório do Arquivo Físico</p>
-              </div>
-              <p class="mt-3 text-sm font-mono text-slate-600 bg-white border border-slate-200 p-4 rounded-lg shadow-sm overflow-x-auto whitespace-nowrap"
-                 :title="selected ? (selected.caminho_arquivo || selected.caminhoArquivo || 'Nenhum caminho mapeado') : 'Nenhum caminho mapeado'"
-                 x-text="selected ? (selected.caminho_arquivo || selected.caminhoArquivo || 'Não mapeado') : '-'"></p>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-  </aside>
-</div>
-
-</div>
+    </script>
 </body>
 </html>

@@ -184,13 +184,25 @@
                 <!-- Gráfico Chart.js e Leitura Executiva -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
                     <!-- Gráfico de Fluxo Mensal -->
-                    <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 flex flex-col h-[300px] sm:h-[400px]">
+                    <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 flex flex-col h-[350px] sm:h-[400px]">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
-                            <h3 class="font-bold text-slate-800 text-base sm:text-lg">Projeção Mensal de Fluxo</h3>
-                            <div class="flex space-x-2 sm:space-x-3 text-[10px] sm:text-xs bg-slate-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-slate-100">
-                                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-blue-600 mr-1"></span>Entradas</span>
-                                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-orange-500 mr-1"></span>Saídas</span>
-                                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-green-500 mr-1"></span>Líquido</span>
+                            <h3 class="font-bold text-slate-800 text-base sm:text-lg">Projeção de Fluxo</h3>
+                            <div class="flex items-center space-x-2">
+                                <!-- Novo Filtro Principal do Gráfico -->
+                                <select id="filtro-grafico" onchange="alterarTipoFiltro(this.value)" class="border border-slate-300 rounded-lg px-2 py-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-700 font-medium">
+                                    <option value="anual">Ano Completo</option>
+                                    <option value="semestral">Por Semestre</option>
+                                    <option value="trimestral">Por Trimestre</option>
+                                </select>
+                                <!-- Sub-filtro Inteligente (Aparece dinamicamente) -->
+                                <select id="sub-filtro-grafico" onchange="aplicarFiltroGrafico()" class="hidden border border-slate-300 rounded-lg px-2 py-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-700 font-medium">
+                                    <!-- Injetado via JS -->
+                                </select>
+                                <div class="hidden sm:flex space-x-2 sm:space-x-3 text-[10px] sm:text-xs bg-slate-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-slate-100">
+                                    <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-blue-600 mr-1"></span>Entradas</span>
+                                    <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-orange-500 mr-1"></span>Saídas</span>
+                                    <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-green-500 mr-1"></span>Líquido</span>
+                                </div>
                             </div>
                         </div>
                         <div class="relative flex-1 w-full">
@@ -601,7 +613,11 @@
         // --- Funções da Aba Dashboard (Mesmas de antes) ---
         function renderizarDashboard(dados) {
             preencherKPIs(dados.resumoDiretoria);
-            renderizarGrafico(dados.resumoMensal);
+            
+            // Inicializa gráfico com a visão padrão (Anual)
+            const seletorGrafico = document.getElementById('filtro-grafico');
+            alterarTipoFiltro(seletorGrafico ? seletorGrafico.value : 'anual');
+            
             preencherTabelaGrupos(dados.resumoDiretoria);
             preencherTabelaMensal(dados.resumoMensal);
             preencherInsights(dados.leituraExecutiva);
@@ -633,12 +649,59 @@
             }
         }
 
-        function renderizarGrafico(dadosMensais) {
+        // --- SISTEMA INTELIGENTE DE FILTRO DO GRÁFICO ---
+        function alterarTipoFiltro(tipo) {
+            const subSelect = document.getElementById('sub-filtro-grafico');
+            subSelect.innerHTML = ''; // Limpa opções anteriores
+
+            if (tipo === 'anual') {
+                subSelect.classList.add('hidden');
+            } else if (tipo === 'semestral') {
+                subSelect.classList.remove('hidden');
+                subSelect.innerHTML = `
+                    <option value="0">1º Semestre (Jan-Jun)</option>
+                    <option value="1">2º Semestre (Jul-Dez)</option>
+                `;
+            } else if (tipo === 'trimestral') {
+                subSelect.classList.remove('hidden');
+                subSelect.innerHTML = `
+                    <option value="0">1º Trim. (Jan-Mar)</option>
+                    <option value="1">2º Trim. (Abr-Jun)</option>
+                    <option value="2">3º Trim. (Jul-Set)</option>
+                    <option value="3">4º Trim. (Out-Dez)</option>
+                `;
+            }
+            
+            aplicarFiltroGrafico(); // Atualiza o gráfico após mudar o filtro
+        }
+
+        function aplicarFiltroGrafico() {
+            const tipo = document.getElementById('filtro-grafico').value;
+            const subValor = parseInt(document.getElementById('sub-filtro-grafico').value || 0);
+            const dadosOriginais = dadosGlobais.resumoMensal;
+            let dadosFiltrados = [];
+
+            if (tipo === 'anual') {
+                dadosFiltrados = dadosOriginais; // Mostra todos os 12 meses
+            } else if (tipo === 'semestral') {
+                // Fatiamento (Slice): Pega 6 meses baseados no semestre escolhido
+                const start = subValor * 6;
+                dadosFiltrados = dadosOriginais.slice(start, start + 6);
+            } else if (tipo === 'trimestral') {
+                // Fatiamento (Slice): Pega 3 meses baseados no trimestre escolhido
+                const start = subValor * 3;
+                dadosFiltrados = dadosOriginais.slice(start, start + 3);
+            }
+
+            renderizarGrafico(dadosFiltrados);
+        }
+
+        function renderizarGrafico(dadosFiltrados) {
             const ctx = document.getElementById('fluxoChart').getContext('2d');
-            const labels = dadosMensais.map(d => d.mes.replace('26/','').replace('/26','').toUpperCase());
-            const entradas = dadosMensais.map(d => d.entradas);
-            const saidas = dadosMensais.map(d => d.saidas);
-            const saldos = dadosMensais.map(d => d.saldoLiquido);
+            const labels = dadosFiltrados.map(d => d.mes.replace('26/','').replace('/26','').toUpperCase());
+            const entradas = dadosFiltrados.map(d => d.entradas);
+            const saidas = dadosFiltrados.map(d => d.saidas);
+            const saldos = dadosFiltrados.map(d => d.saldoLiquido);
 
             if(myChart) myChart.destroy(); 
 

@@ -46,6 +46,10 @@
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
         body { background-color: #f8fafc; }
+        
+        /* Animação suave para troca de abas */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="text-slate-800 antialiased flex flex-col h-screen overflow-hidden">
@@ -63,7 +67,7 @@
             <!-- Divisor -->
             <div class="h-8 w-px bg-slate-200 hidden md:block mr-6"></div>
             <!-- Título da Tela -->
-            <h2 class="text-lg font-semibold text-slate-600 hidden md:block">Análise de Fluxo de Caixa</h2>
+            <h2 class="text-lg font-semibold text-slate-600 hidden md:block">Sistema de Gestão Financeira</h2>
         </div>
         
         <div class="flex items-center space-x-3 sm:space-x-4">
@@ -84,210 +88,395 @@
         </div>
     </header>
 
-    <!-- Sub-header de Navegação (Botões) -->
-    <div class="bg-white px-4 sm:px-6 lg:px-8 py-3 flex space-x-2 overflow-x-auto hide-scrollbar shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] z-10 flex-shrink-0 border-b border-slate-200">
-        <button class="bg-brand-primary text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center whitespace-nowrap shadow-sm hover:bg-blue-800 transition-colors">
-            <i class="ph ph-chart-line-up mr-2 text-lg"></i> Dashboard Executivo
+    <!-- Sub-header de Navegação (Botões que agora funcionam como Abas) -->
+    <div class="bg-white px-2 sm:px-6 lg:px-8 py-2 sm:py-3 flex space-x-1 sm:space-x-2 overflow-x-auto hide-scrollbar shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] z-10 flex-shrink-0 border-b border-slate-200">
+        <button id="tab-dashboard" onclick="mudarAba('dashboard')" class="tab-btn bg-brand-primary text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center whitespace-nowrap shadow-sm hover:bg-blue-800 transition-colors">
+            <i class="ph ph-chart-line-up mr-1.5 sm:mr-2 text-base sm:text-lg"></i> Dashboard Executivo
         </button>
-        <button class="text-slate-600 hover:bg-slate-100 px-4 py-2 rounded-lg text-sm font-medium flex items-center transition-colors whitespace-nowrap">
-            <i class="ph ph-arrow-down-left mr-2 text-lg text-green-500"></i> Contas a Receber
+        <button id="tab-receber" onclick="mudarAba('receber')" class="tab-btn text-slate-600 hover:bg-slate-100 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center transition-colors whitespace-nowrap border border-transparent">
+            <i class="ph ph-arrow-down-left mr-1.5 sm:mr-2 text-base sm:text-lg text-green-500"></i> Contas a Receber
         </button>
-        <button class="text-slate-600 hover:bg-slate-100 px-4 py-2 rounded-lg text-sm font-medium flex items-center transition-colors whitespace-nowrap">
-            <i class="ph ph-arrow-up-right mr-2 text-lg text-red-500"></i> Contas a Pagar
+        <button id="tab-pagar" onclick="mudarAba('pagar')" class="tab-btn text-slate-600 hover:bg-slate-100 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center transition-colors whitespace-nowrap border border-transparent">
+            <i class="ph ph-arrow-up-right mr-1.5 sm:mr-2 text-base sm:text-lg text-red-500"></i> Contas a Pagar
         </button>
-        <button class="text-slate-600 hover:bg-slate-100 px-4 py-2 rounded-lg text-sm font-medium flex items-center transition-colors whitespace-nowrap border border-transparent hover:border-slate-200">
-            <i class="ph ph-bank mr-2 text-lg text-blue-500"></i> Movimentação Bancária
+        <button id="tab-bancos" onclick="mudarAba('bancos')" class="tab-btn text-slate-600 hover:bg-slate-100 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center transition-colors whitespace-nowrap border border-transparent hover:border-slate-200">
+            <i class="ph ph-bank mr-1.5 sm:mr-2 text-base sm:text-lg text-blue-500"></i> Movimentação Bancária
         </button>
-        <button class="text-slate-600 hover:bg-slate-100 px-4 py-2 rounded-lg text-sm font-medium flex items-center transition-colors whitespace-nowrap border border-transparent hover:border-slate-200 ml-auto">
-            <i class="ph ph-gear mr-2 text-lg text-slate-500"></i> Parâmetros
+        <button id="tab-parametros" onclick="mudarAba('parametros')" class="tab-btn text-slate-600 hover:bg-slate-100 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center transition-colors whitespace-nowrap border border-transparent hover:border-slate-200 ml-auto">
+            <i class="ph ph-gear mr-1.5 sm:mr-2 text-base sm:text-lg text-slate-500"></i> Parâmetros
         </button>
     </div>
 
     <!-- Main Content Flow -->
     <div class="flex-1 overflow-hidden relative">
         <!-- Floating Update Button -->
-        <button onclick="atualizarDashboard()" class="absolute bottom-6 right-6 z-30 bg-brand-primary hover:bg-blue-800 text-white px-5 py-3 rounded-full text-sm font-semibold transition-all shadow-lg hover:shadow-xl flex items-center group">
-            <i class="ph ph-arrows-clockwise text-xl mr-2 group-hover:rotate-180 transition-transform duration-500" id="icone-atualizar"></i> 
+        <button onclick="atualizarDados()" class="absolute bottom-4 sm:bottom-6 right-4 sm:right-6 z-30 bg-brand-primary hover:bg-blue-800 text-white px-4 sm:px-5 py-3 rounded-full text-sm font-semibold transition-all shadow-lg hover:shadow-xl flex items-center group">
+            <i class="ph ph-arrows-clockwise text-xl sm:mr-2 group-hover:rotate-180 transition-transform duration-500" id="icone-atualizar"></i> 
             <span class="hidden sm:inline">Atualizar Dados</span>
         </button>
 
-        <main class="h-full overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar pb-24">
+        <main class="h-full overflow-y-auto p-3 sm:p-6 lg:p-8 custom-scrollbar pb-24">
             
-            <!-- KPIs Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 mb-6">
-                <!-- KPI 1 -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 border-l-4 border-l-green-500 hover:shadow-md transition-shadow">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium text-slate-500 mb-1">Contas a Receber</p>
-                            <h3 class="text-2xl font-bold text-slate-800" id="kpi-receber">R$ 0,00</h3>
+            <!-- ================= VIEW: DASHBOARD ================= -->
+            <div id="view-dashboard" class="view-section block fade-in">
+                <!-- KPIs Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-6">
+                    <!-- KPI 1 -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5 border-l-4 border-l-green-500 hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs sm:text-sm font-medium text-slate-500 mb-1">Contas a Receber</p>
+                                <h3 class="text-xl sm:text-2xl font-bold text-slate-800" id="kpi-receber">R$ 0,00</h3>
+                            </div>
+                            <div class="p-1.5 sm:p-2 bg-green-50 rounded-lg"><i class="ph ph-trend-up text-green-600 text-lg sm:text-xl"></i></div>
                         </div>
-                        <div class="p-2 bg-green-50 rounded-lg"><i class="ph ph-trend-up text-green-600 text-xl"></i></div>
-                    </div>
-                    <div class="mt-4 text-xs flex justify-between text-slate-600">
-                        <span><strong class="text-red-500" id="kpi-receber-vencido">R$ 0,00</strong> vencido</span>
-                        <span id="kpi-receber-qtd" class="bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-medium">0 docs</span>
-                    </div>
-                </div>
-                
-                <!-- KPI 2 -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 border-l-4 border-l-orange-500 hover:shadow-md transition-shadow">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium text-slate-500 mb-1">Contas a Pagar</p>
-                            <h3 class="text-2xl font-bold text-slate-800" id="kpi-pagar">R$ 0,00</h3>
-                        </div>
-                        <div class="p-2 bg-orange-50 rounded-lg"><i class="ph ph-trend-down text-orange-600 text-xl"></i></div>
-                    </div>
-                    <div class="mt-4 text-xs flex justify-between text-slate-600">
-                        <span><strong class="text-slate-800" id="kpi-pagar-vencer">R$ 0,00</strong> a vencer</span>
-                        <span id="kpi-pagar-qtd" class="bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-medium">0 docs</span>
-                    </div>
-                </div>
-
-                <!-- KPI 3 -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium text-slate-500 mb-1">Saldo em Bancos</p>
-                            <h3 class="text-2xl font-bold text-slate-800" id="kpi-bancos">R$ 0,00</h3>
-                        </div>
-                        <div class="p-2 bg-blue-50 rounded-lg"><i class="ph ph-bank text-blue-600 text-xl"></i></div>
-                    </div>
-                    <div class="mt-4 text-xs text-slate-600 flex items-center">
-                        <i class="ph ph-info mr-1 text-slate-400"></i>
-                        <span id="kpi-bancos-leitura">Cobre 0.00x o pagar</span>
-                    </div>
-                </div>
-
-                <!-- KPI 4 -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 border-l-4 border-l-indigo-500 bg-indigo-50/30 hover:shadow-md transition-shadow">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="text-sm font-medium text-slate-500 mb-1">Posição Projetada</p>
-                            <h3 class="text-2xl font-bold text-indigo-700" id="kpi-projetada">R$ 0,00</h3>
-                        </div>
-                        <div class="p-2 bg-indigo-100 rounded-lg"><i class="ph ph-scales text-indigo-600 text-xl"></i></div>
-                    </div>
-                    <div class="mt-4 text-xs text-slate-600">
-                        <span>Corte pagar: <strong>90 dias</strong></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Gráfico Chart.js e Leitura Executiva -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                
-                <!-- Gráfico de Fluxo Mensal -->
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 flex flex-col h-[400px]">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-slate-800 text-lg">Projeção Mensal de Fluxo</h3>
-                        <div class="flex space-x-3 text-xs bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                            <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-blue-600 mr-1.5"></span>Entradas</span>
-                            <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-orange-500 mr-1.5"></span>Saídas</span>
-                            <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-green-500 mr-1.5"></span>Líquido</span>
+                        <div class="mt-3 sm:mt-4 text-[11px] sm:text-xs flex justify-between text-slate-600">
+                            <span><strong class="text-red-500" id="kpi-receber-vencido">R$ 0,00</strong> vencido</span>
+                            <span id="kpi-receber-qtd" class="bg-slate-100 px-1.5 sm:px-2 py-0.5 rounded text-slate-500 font-medium">0 docs</span>
                         </div>
                     </div>
-                    <div class="relative flex-1 w-full">
-                        <canvas id="fluxoChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Insights / Leitura Executiva -->
-                <div class="bg-brand-dark p-6 rounded-xl shadow-sm text-white flex flex-col">
-                    <h3 class="font-bold text-lg mb-4 flex items-center border-b border-slate-600 pb-3">
-                        <i class="ph ph-sparkle text-yellow-400 mr-2 text-2xl"></i> Insights do Sistema
-                    </h3>
-                    <div class="flex-1 flex flex-col justify-center space-y-4" id="container-insights">
-                        <!-- Insights serão populados via JS -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Área Inferior: Tabelas e Saldos de Bancos -->
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                
-                <!-- Coluna das Tabelas (Ocupa 2/3 da tela em desktops grandes) -->
-                <div class="xl:col-span-2 flex flex-col gap-6">
                     
-                    <!-- Resumo Objetivo -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="bg-slate-50 px-5 py-4 border-b border-slate-200 flex justify-between items-center">
-                            <h3 class="font-bold text-slate-800 flex items-center">
-                                <i class="ph ph-table mr-2 text-slate-400 text-lg"></i> Resumo Objetivo para Diretoria
-                            </h3>
+                    <!-- KPI 2 -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5 border-l-4 border-l-orange-500 hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs sm:text-sm font-medium text-slate-500 mb-1">Contas a Pagar</p>
+                                <h3 class="text-xl sm:text-2xl font-bold text-slate-800" id="kpi-pagar">R$ 0,00</h3>
+                            </div>
+                            <div class="p-1.5 sm:p-2 bg-orange-50 rounded-lg"><i class="ph ph-trend-down text-orange-600 text-lg sm:text-xl"></i></div>
                         </div>
-                        <div class="overflow-x-auto custom-scrollbar">
-                            <table class="w-full text-sm text-left">
-                                <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] tracking-wider font-semibold border-b border-slate-200">
-                                    <tr>
-                                        <th class="px-5 py-3">Grupo de Conta</th>
-                                        <th class="px-5 py-3 text-right">Total Acumulado</th>
-                                        <th class="px-5 py-3 text-right">Vencido 60d</th>
-                                        <th class="px-5 py-3 text-right">A Vencer/Corte</th>
-                                        <th class="px-5 py-3 text-center">Volume</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabela-grupos" class="divide-y divide-slate-100 text-slate-700">
-                                    <!-- Populated via JS -->
-                                </tbody>
-                            </table>
+                        <div class="mt-3 sm:mt-4 text-[11px] sm:text-xs flex justify-between text-slate-600">
+                            <span><strong class="text-slate-800" id="kpi-pagar-vencer">R$ 0,00</strong> a vencer</span>
+                            <span id="kpi-pagar-qtd" class="bg-slate-100 px-1.5 sm:px-2 py-0.5 rounded text-slate-500 font-medium">0 docs</span>
                         </div>
                     </div>
 
-                    <!-- Resumo Mensal 2026 -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="bg-slate-50 px-5 py-4 border-b border-slate-200">
-                            <h3 class="font-bold text-slate-800 flex items-center">
-                                <i class="ph ph-calendar mr-2 text-slate-400 text-lg"></i> Composição Mensal
-                            </h3>
+                    <!-- KPI 3 -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5 border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs sm:text-sm font-medium text-slate-500 mb-1">Saldo em Bancos</p>
+                                <h3 class="text-xl sm:text-2xl font-bold text-slate-800" id="kpi-bancos">R$ 0,00</h3>
+                            </div>
+                            <div class="p-1.5 sm:p-2 bg-blue-50 rounded-lg"><i class="ph ph-bank text-blue-600 text-lg sm:text-xl"></i></div>
                         </div>
-                        <div class="overflow-x-auto custom-scrollbar max-h-[300px]">
-                            <table class="w-full text-sm text-left relative">
-                                <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] tracking-wider font-semibold sticky top-0 shadow-sm z-10 border-b border-slate-200">
-                                    <tr>
-                                        <th class="px-5 py-3">Competência</th>
-                                        <th class="px-5 py-3 text-right">Previsão Entradas</th>
-                                        <th class="px-5 py-3 text-right">Previsão Saídas</th>
-                                        <th class="px-5 py-3 text-right">Resultado do Mês</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabela-mensal" class="divide-y divide-slate-100 text-slate-700">
-                                    <!-- Populated via JS -->
-                                </tbody>
-                            </table>
+                        <div class="mt-3 sm:mt-4 text-[11px] sm:text-xs text-slate-600 flex items-center">
+                            <i class="ph ph-info mr-1 text-slate-400"></i>
+                            <span id="kpi-bancos-leitura">Cobre 0.00x o pagar</span>
                         </div>
                     </div>
 
+                    <!-- KPI 4 -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5 border-l-4 border-l-indigo-500 bg-indigo-50/30 hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs sm:text-sm font-medium text-slate-500 mb-1">Posição Projetada</p>
+                                <h3 class="text-xl sm:text-2xl font-bold text-indigo-700" id="kpi-projetada">R$ 0,00</h3>
+                            </div>
+                            <div class="p-1.5 sm:p-2 bg-indigo-100 rounded-lg"><i class="ph ph-scales text-indigo-600 text-lg sm:text-xl"></i></div>
+                        </div>
+                        <div class="mt-3 sm:mt-4 text-[11px] sm:text-xs text-slate-600">
+                            <span>Corte pagar: <strong>90 dias</strong></span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Coluna Exclusiva para Saldos de Bancos (Ocupa 1/3) -->
-                <div class="xl:col-span-1">
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col h-full sticky top-4">
-                        <div class="bg-slate-50 px-5 py-4 border-b border-slate-200 flex justify-between items-center">
-                            <h3 class="font-bold text-slate-800 flex items-center">
-                                <i class="ph ph-wallet mr-2 text-blue-500 text-lg"></i> Saldos por Instituição
-                            </h3>
-                            <button class="text-blue-600 hover:bg-blue-50 p-1.5 rounded-md transition-colors">
-                                <i class="ph ph-dots-three text-xl"></i>
-                            </button>
+                <!-- Gráfico Chart.js e Leitura Executiva -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
+                    <!-- Gráfico de Fluxo Mensal -->
+                    <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2 flex flex-col h-[300px] sm:h-[400px]">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                            <h3 class="font-bold text-slate-800 text-base sm:text-lg">Projeção Mensal de Fluxo</h3>
+                            <div class="flex space-x-2 sm:space-x-3 text-[10px] sm:text-xs bg-slate-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-slate-100">
+                                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-blue-600 mr-1"></span>Entradas</span>
+                                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-orange-500 mr-1"></span>Saídas</span>
+                                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-green-500 mr-1"></span>Líquido</span>
+                            </div>
                         </div>
-                        
-                        <!-- Lista de Bancos Injetada via JS -->
-                        <div class="p-5 flex-1 flex flex-col space-y-4" id="container-bancos">
-                            <!-- Populated via JS -->
+                        <div class="relative flex-1 w-full">
+                            <canvas id="fluxoChart"></canvas>
                         </div>
-                        
-                        <!-- Totalizador dos Bancos -->
-                        <div class="bg-slate-800 px-5 py-4 rounded-b-xl text-white">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm font-medium text-slate-300">Total Disponível</span>
-                                <span class="font-bold text-xl text-white" id="total-bancos-card">R$ 0,00</span>
+                    </div>
+
+                    <!-- Insights / Leitura Executiva -->
+                    <div class="bg-brand-dark p-4 sm:p-6 rounded-xl shadow-sm text-white flex flex-col">
+                        <h3 class="font-bold text-base sm:text-lg mb-3 sm:mb-4 flex items-center border-b border-slate-600 pb-2 sm:pb-3">
+                            <i class="ph ph-sparkle text-yellow-400 mr-2 text-xl sm:text-2xl"></i> Insights do Sistema
+                        </h3>
+                        <div class="flex-1 flex flex-col justify-center space-y-3 sm:space-y-4" id="container-insights">
+                            <!-- Insights serão populados via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Área Inferior: Tabelas e Saldos de Bancos -->
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+                    <div class="xl:col-span-2 flex flex-col gap-4 sm:gap-6">
+                        <!-- Resumo Objetivo -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div class="bg-slate-50 px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 flex justify-between items-center">
+                                <h3 class="font-bold text-slate-800 flex items-center text-sm sm:text-base">
+                                    <i class="ph ph-table mr-2 text-slate-400 text-lg"></i> Resumo Objetivo para Diretoria
+                                </h3>
+                            </div>
+                            <div class="overflow-x-auto custom-scrollbar">
+                                <table class="w-full text-left">
+                                    <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] sm:text-[11px] tracking-wider font-semibold border-b border-slate-200">
+                                        <tr>
+                                            <th class="px-3 sm:px-5 py-2.5 sm:py-3 whitespace-nowrap">Grupo de Conta</th>
+                                            <th class="px-3 sm:px-5 py-2.5 sm:py-3 text-right whitespace-nowrap">Total Acumulado</th>
+                                            <th class="px-3 sm:px-5 py-2.5 sm:py-3 text-right whitespace-nowrap">Vencido 60d</th>
+                                            <th class="px-3 sm:px-5 py-2.5 sm:py-3 text-right whitespace-nowrap">A Vencer/Corte</th>
+                                            <th class="px-3 sm:px-5 py-2.5 sm:py-3 text-center whitespace-nowrap">Volume</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabela-grupos" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Resumo Mensal 2026 -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div class="bg-slate-50 px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200">
+                                <h3 class="font-bold text-slate-800 flex items-center text-sm sm:text-base">
+                                    <i class="ph ph-calendar mr-2 text-slate-400 text-lg"></i> Composição Mensal
+                                </h3>
+                            </div>
+                            <div class="overflow-x-auto custom-scrollbar max-h-[300px]">
+                                <table class="w-full text-left relative">
+                                    <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] sm:text-[11px] tracking-wider font-semibold sticky top-0 shadow-sm z-10 border-b border-slate-200">
+                                        <tr>
+                                            <th class="px-3 sm:px-5 py-2.5 sm:py-3 whitespace-nowrap">Competência</th>
+                                            <th class="px-3 sm:px-5 py-2.5 sm:py-3 text-right whitespace-nowrap">Previsão Entradas</th>
+                                            <th class="px-3 sm:px-5 py-2.5 sm:py-3 text-right whitespace-nowrap">Previsão Saídas</th>
+                                            <th class="px-3 sm:px-5 py-2.5 sm:py-3 text-right whitespace-nowrap">Resultado do Mês</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabela-mensal" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Saldos de Bancos -->
+                    <div class="xl:col-span-1">
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col h-full sticky top-4">
+                            <div class="bg-slate-50 px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 flex justify-between items-center">
+                                <h3 class="font-bold text-slate-800 flex items-center text-sm sm:text-base">
+                                    <i class="ph ph-wallet mr-2 text-blue-500 text-lg"></i> Saldos por Instituição
+                                </h3>
+                            </div>
+                            <div class="p-4 sm:p-5 flex-1 flex flex-col space-y-3 sm:space-y-4" id="container-bancos"></div>
+                            <div class="bg-slate-800 px-4 sm:px-5 py-3 sm:py-4 rounded-b-xl text-white">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs sm:text-sm font-medium text-slate-300">Total Disponível</span>
+                                    <span class="font-bold text-lg sm:text-xl text-white" id="total-bancos-card">R$ 0,00</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
+            <!-- ================= VIEW: CONTAS A RECEBER ================= -->
+            <div id="view-receber" class="view-section hidden fade-in space-y-4 sm:space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+                    <h2 class="text-xl sm:text-2xl font-bold text-slate-800 flex items-center">
+                        <i class="ph ph-arrow-down-left text-green-500 mr-2"></i> Inteligência de Recebíveis
+                    </h2>
+                    <button class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center transition-colors">
+                        <i class="ph ph-list-magnifying-glass mr-2 text-lg"></i> Ver Todos os Documentos
+                    </button>
+                </div>
+                
+                <!-- KPIs Receber -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm border-t-4 border-t-green-500 relative overflow-hidden">
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Carteira Total</p>
+                        <h3 class="text-lg sm:text-2xl font-bold text-slate-800 truncate" id="rec-kpi-total">R$ 0,00</h3>
+                        <i class="ph ph-wallet text-slate-100 text-4xl sm:text-5xl absolute -bottom-2 -right-2"></i>
+                    </div>
+                    <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Maior Receb.</p>
+                        <h3 class="text-lg sm:text-2xl font-bold text-blue-600 truncate" id="rec-kpi-maior">R$ 0,00</h3>
+                        <i class="ph ph-trophy text-slate-100 text-4xl sm:text-5xl absolute -bottom-2 -right-2"></i>
+                    </div>
+                    <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Média Mensal</p>
+                        <h3 class="text-lg sm:text-2xl font-bold text-slate-800 truncate" id="rec-kpi-media">R$ 0,00</h3>
+                        <i class="ph ph-chart-bar text-slate-100 text-4xl sm:text-5xl absolute -bottom-2 -right-2"></i>
+                    </div>
+                    <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Vol. Docs</p>
+                        <h3 class="text-lg sm:text-2xl font-bold text-slate-800 truncate" id="rec-kpi-qtd">0</h3>
+                        <i class="ph ph-files text-slate-100 text-4xl sm:text-5xl absolute -bottom-2 -right-2"></i>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                    <!-- Top Clientes -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200">
+                        <div class="bg-slate-50 px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200">
+                            <h3 class="font-bold text-slate-800 flex items-center text-sm sm:text-base">
+                                <i class="ph ph-users text-blue-500 mr-2 text-lg"></i> Maiores Pagadores (Curva A)
+                            </h3>
+                        </div>
+                        <div class="p-4 sm:p-6 space-y-4 sm:space-y-5" id="rec-top-clientes">
+                            <!-- Injetado via JS -->
+                        </div>
+                    </div>
+                    <!-- Status e Risco -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200">
+                        <div class="bg-slate-50 px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200">
+                            <h3 class="font-bold text-slate-800 flex items-center text-sm sm:text-base">
+                                <i class="ph ph-chart-pie-slice text-green-500 mr-2 text-lg"></i> Posição e Vencimentos
+                            </h3>
+                        </div>
+                        <div class="p-4 sm:p-6 flex flex-col justify-center space-y-3 sm:space-y-4 h-[calc(100%-52px)] sm:h-[calc(100%-60px)]" id="rec-status-carteira">
+                            <!-- Injetado via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW: CONTAS A PAGAR ================= -->
+            <div id="view-pagar" class="view-section hidden fade-in space-y-4 sm:space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+                    <h2 class="text-xl sm:text-2xl font-bold text-slate-800 flex items-center">
+                        <i class="ph ph-arrow-up-right text-red-500 mr-2"></i> Inteligência de Pagar
+                    </h2>
+                    <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                        <button class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center transition-colors">
+                            <i class="ph ph-list-magnifying-glass mr-2 text-lg"></i> Todos os Docs
+                        </button>
+                        <button class="w-full sm:w-auto bg-brand-primary hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center shadow-sm transition-colors">
+                            <i class="ph ph-plus mr-2"></i> Novo
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- KPIs Pagar -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm border-t-4 border-t-orange-500 relative overflow-hidden">
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Passivo Total</p>
+                        <h3 class="text-lg sm:text-2xl font-bold text-slate-800 truncate" id="pag-kpi-total">R$ 0,00</h3>
+                        <i class="ph ph-receipt text-slate-100 text-4xl sm:text-5xl absolute -bottom-2 -right-2"></i>
+                    </div>
+                    <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Maior Pagam.</p>
+                        <h3 class="text-lg sm:text-2xl font-bold text-red-600 truncate" id="pag-kpi-maior">R$ 0,00</h3>
+                        <i class="ph ph-warning-circle text-slate-100 text-4xl sm:text-5xl absolute -bottom-2 -right-2"></i>
+                    </div>
+                    <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Média Mensal</p>
+                        <h3 class="text-lg sm:text-2xl font-bold text-slate-800 truncate" id="pag-kpi-media">R$ 0,00</h3>
+                        <i class="ph ph-chart-bar text-slate-100 text-4xl sm:text-5xl absolute -bottom-2 -right-2"></i>
+                    </div>
+                    <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Vol. Docs</p>
+                        <h3 class="text-lg sm:text-2xl font-bold text-slate-800 truncate" id="pag-kpi-qtd">0</h3>
+                        <i class="ph ph-files text-slate-100 text-4xl sm:text-5xl absolute -bottom-2 -right-2"></i>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                    <!-- Top Fornecedores -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200">
+                        <div class="bg-slate-50 px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200">
+                            <h3 class="font-bold text-slate-800 flex items-center text-sm sm:text-base">
+                                <i class="ph ph-truck text-orange-500 mr-2 text-lg"></i> Principais Fornecedores
+                            </h3>
+                        </div>
+                        <div class="p-4 sm:p-6 space-y-4 sm:space-y-5" id="pag-top-fornecedores">
+                            <!-- Injetado via JS -->
+                        </div>
+                    </div>
+                    <!-- Status e Risco -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200">
+                        <div class="bg-slate-50 px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200">
+                            <h3 class="font-bold text-slate-800 flex items-center text-sm sm:text-base">
+                                <i class="ph ph-calendar text-red-500 mr-2 text-lg"></i> Posição e Obrigações
+                            </h3>
+                        </div>
+                        <div class="p-4 sm:p-6 flex flex-col justify-center space-y-3 sm:space-y-4 h-[calc(100%-52px)] sm:h-[calc(100%-60px)]" id="pag-status-carteira">
+                            <!-- Injetado via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW: BANCOS / EXTRATO ================= -->
+            <div id="view-bancos" class="view-section hidden fade-in">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+                    <h2 class="text-xl sm:text-2xl font-bold text-slate-800 flex items-center">
+                        <i class="ph ph-bank text-blue-500 mr-2"></i> Movimentação Bancária Recente
+                    </h2>
+                    <select class="w-full sm:w-auto border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option>Todos os Bancos</option>
+                        <option>Itaú Unibanco (CC 12345-6)</option>
+                        <option>Bradesco PJ (CC 9876-1)</option>
+                    </select>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] sm:text-[11px] tracking-wider font-semibold border-b border-slate-200">
+                                <tr>
+                                    <th class="px-3 sm:px-5 py-2.5 sm:py-3 whitespace-nowrap">Data</th>
+                                    <th class="px-3 sm:px-5 py-2.5 sm:py-3 whitespace-nowrap">Descrição</th>
+                                    <th class="px-3 sm:px-5 py-2.5 sm:py-3 whitespace-nowrap">Banco Origem/Destino</th>
+                                    <th class="px-3 sm:px-5 py-2.5 sm:py-3 text-right whitespace-nowrap">Valor Entrada</th>
+                                    <th class="px-3 sm:px-5 py-2.5 sm:py-3 text-right whitespace-nowrap">Valor Saída</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabela-detalhe-bancos" class="divide-y divide-slate-100 text-slate-700">
+                                <!-- Preenchido via JS mockData -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= VIEW: PARÂMETROS ================= -->
+            <div id="view-parametros" class="view-section hidden fade-in max-w-4xl mx-auto">
+                <h2 class="text-xl sm:text-2xl font-bold text-slate-800 flex items-center mb-4 sm:mb-6">
+                    <i class="ph ph-gear text-slate-500 mr-2"></i> Configurações do Sistema
+                </h2>
+
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-5 sm:space-y-6">
+                    <div>
+                        <h3 class="font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3 sm:mb-4 text-sm sm:text-base">Gerais e Integração</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs sm:text-sm font-medium text-slate-600 mb-1">Data Base de Projeção</label>
+                                <input type="date" value="2026-05-15" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs sm:text-sm font-medium text-slate-600 mb-1">URL Endpoint ERP (API)</label>
+                                <input type="text" value="https://api.maisequip.com.br/v1/finance" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-50">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3 sm:mb-4 text-sm sm:text-base">Alertas e Notificações</h3>
+                        <div class="space-y-3">
+                            <label class="flex items-start sm:items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" checked class="form-checkbox h-5 w-5 text-blue-600 rounded mt-0.5 sm:mt-0 flex-shrink-0">
+                                <span class="text-xs sm:text-sm text-slate-700 leading-tight">Notificar por e-mail quando "Contas a Receber" vencido ultrapassar 5% da carteira.</span>
+                            </label>
+                            <label class="flex items-start sm:items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" checked class="form-checkbox h-5 w-5 text-blue-600 rounded mt-0.5 sm:mt-0 flex-shrink-0">
+                                <span class="text-xs sm:text-sm text-slate-700 leading-tight">Destacar em vermelho contas a pagar com menos de 2 dias pro vencimento.</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 sm:pt-4 flex justify-end">
+                        <button class="w-full sm:w-auto bg-brand-primary text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-800 transition shadow-sm">Salvar Configurações</button>
+                    </div>
+                </div>
             </div>
 
         </main>
@@ -295,15 +484,41 @@
 
     <script>
         // =====================================================================
-        // === ÁREA PARA O PRÓXIMO DESENVOLVEDOR (FUTURA INTEGRAÇÃO API/BD)  ===
+        // === MÓDULO: NAVEGAÇÃO DE ABAS (SPA SIMULADA) ========================
         // =====================================================================
+        function mudarAba(abaDestino) {
+            // 1. Esconder todas as sections
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('block');
+            });
+            
+            // 2. Mostrar a section correspondente
+            const view = document.getElementById(`view-${abaDestino}`);
+            if(view) {
+                view.classList.remove('hidden');
+                view.classList.add('block');
+            }
 
-        // Utilitário para formatar moeda (BRL)
-        const formatarMoeda = (valor) => {
-            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
-        };
+            // 3. Resetar o visual de todos os botões (remover classes ativas)
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn text-slate-600 hover:bg-slate-100 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center transition-colors whitespace-nowrap border border-transparent";
+            });
 
-        // --- MOCK DE DADOS (Expandido para incluir detalhamento dos Bancos) ---
+            // 4. Aplicar estilo ativo no botão clicado
+            const tab = document.getElementById(`tab-${abaDestino}`);
+            if(tab) {
+                tab.className = "tab-btn bg-brand-primary text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center whitespace-nowrap shadow-sm hover:bg-blue-800 transition-colors";
+            }
+        }
+
+
+        // =====================================================================
+        // === MÓDULO: DADOS (MOCK) ============================================
+        // =====================================================================
+        const formatarMoeda = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+
+        // --- DADOS DO DASHBOARD (MOCK ORIGINAL) ---
         const dadosGlobais = {
             resumoDiretoria: [
                 { grupo: "Contas a receber", total: 2560626.25, vencido60d: 59452.14, aVencerCorte: 2501174.11, qtd: 32, leitura: "Vencidos = 2,32% da carteira" },
@@ -335,16 +550,55 @@
                 { banco: "Bradesco PJ", conta: "CC 9876-1", valor: 221730.45, logo: "ph-briefcase", corIco: "text-red-600", bgIco: "bg-red-100" },
                 { banco: "Caixa Econômica", conta: "CC 4567-8", valor: 120000.00, logo: "ph-buildings", corIco: "text-blue-600", bgIco: "bg-blue-100" },
                 { banco: "Santander", conta: "CC 3321-0", valor: 30000.00, logo: "ph-credit-card", corIco: "text-red-500", bgIco: "bg-red-50" }
-                // A soma é igual ao total de Bancos: 350.000 + 221.730,45 + 120.000 + 30.000 = 721.730,45
             ]
         };
 
+        // --- DADOS DAS NOVAS ABAS DE INTELIGÊNCIA (MOCK PARA SIMULAÇÃO) ---
+        const resumoReceber = {
+            kpis: { total: 2560626.25, maiorRecebimento: 500000.00, mediaMensal: 426771.04, qtdDocs: 32 },
+            topClientes: [
+                { cliente: "Prefeitura Municipal", valor: 500000.00, percentual: 25 },
+                { cliente: "Locações Delta Ltda", valor: 120500.00, percentual: 12 },
+                { cliente: "Grupo Varejista Omega", valor: 85000.00, percentual: 8 },
+                { cliente: "Construtora Alpha S.A", valor: 45000.00, percentual: 4.5 },
+                { cliente: "Indústria Metalúrgica Sul", valor: 32100.50, percentual: 3 }
+            ],
+            status: { vencido: 59452.14, aVencer30d: 850000.00, aVencer60d: 1651174.11 }
+        };
+
+        const resumoPagar = {
+            kpis: { total: 317944.68, maiorPagamento: 180000.00, mediaMensal: 52990.78, qtdDocs: 107 },
+            topFornecedores: [
+                { fornecedor: "Folha de Pagamento - Maio", valor: 180000.00, percentual: 56.6 },
+                { fornecedor: "Distribuidora de Óleo Br", valor: 45000.00, percentual: 14.1 },
+                { fornecedor: "Companhia de Energia", valor: 12450.00, percentual: 3.9 },
+                { fornecedor: "Consultoria Contábil Silva", valor: 5500.00, percentual: 1.7 }
+            ],
+            status: { vencido: 0, aVencer7d: 57450.00, aVencer30d: 260494.68 }
+        };
+
+        const listaBancos = [
+            { data: "14/05/2026", desc: "TED Recebida - Construtora Zeta", banco: "Itaú Unibanco", entrada: 25000.00, saida: null },
+            { data: "14/05/2026", desc: "Pagamento Boleto - Seguros S.A", banco: "Itaú Unibanco", entrada: null, saida: 3450.00 },
+            { data: "13/05/2026", desc: "Pix Recebido - Cliente Final", banco: "Bradesco PJ", entrada: 1200.00, saida: null },
+            { data: "12/05/2026", desc: "Tarifa Manutenção Conta", banco: "Caixa Econômica", entrada: null, saida: 89.90 },
+            { data: "10/05/2026", desc: "Recebimento Cartões Adquirente", banco: "Santander", entrada: 15400.50, saida: null },
+        ];
+
+
+        // =====================================================================
+        // === MÓDULO: RENDERIZAÇÃO ============================================
+        // =====================================================================
         let myChart = null; 
 
         window.onload = function() {
             renderizarDashboard(dadosGlobais);
+            renderizarAbaReceber();
+            renderizarAbaPagar();
+            renderizarAbaExtrato();
         };
 
+        // --- Funções da Aba Dashboard (Mesmas de antes) ---
         function renderizarDashboard(dados) {
             preencherKPIs(dados.resumoDiretoria);
             renderizarGrafico(dados.resumoMensal);
@@ -381,7 +635,6 @@
 
         function renderizarGrafico(dadosMensais) {
             const ctx = document.getElementById('fluxoChart').getContext('2d');
-            
             const labels = dadosMensais.map(d => d.mes.replace('26/','').replace('/26','').toUpperCase());
             const entradas = dadosMensais.map(d => d.entradas);
             const saidas = dadosMensais.map(d => d.saidas);
@@ -394,146 +647,60 @@
                 data: {
                     labels: labels,
                     datasets: [
-                        {
-                            label: 'Entradas',
-                            data: entradas,
-                            borderColor: '#2563eb', // blue-600
-                            backgroundColor: '#2563eb',
-                            borderWidth: 3,
-                            tension: 0.4, // Curva mais suave
-                            pointRadius: 4,
-                            pointHoverRadius: 6
-                        },
-                        {
-                            label: 'Saídas',
-                            data: saidas,
-                            borderColor: '#f97316', // orange-500
-                            backgroundColor: '#f97316',
-                            borderWidth: 3,
-                            tension: 0.4,
-                            pointRadius: 4,
-                            pointHoverRadius: 6
-                        },
-                        {
-                            label: 'Saldo Líquido',
-                            data: saldos,
-                            borderColor: '#22c55e', // green-500
-                            backgroundColor: '#22c55e',
-                            borderWidth: 3,
-                            tension: 0.4,
-                            pointRadius: 4,
-                            pointHoverRadius: 6
-                        }
+                        { label: 'Entradas', data: entradas, borderColor: '#2563eb', backgroundColor: '#2563eb', borderWidth: 3, tension: 0.4, pointRadius: 4 },
+                        { label: 'Saídas', data: saidas, borderColor: '#f97316', backgroundColor: '#f97316', borderWidth: 3, tension: 0.4, pointRadius: 4 },
+                        { label: 'Saldo Líquido', data: saldos, borderColor: '#22c55e', backgroundColor: '#22c55e', borderWidth: 3, tension: 0.4, pointRadius: 4 }
                     ]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: '#0f172a',
-                            titleFont: { size: 13, family: 'Inter' },
-                            bodyFont: { size: 13, family: 'Inter' },
-                            padding: 12,
-                            cornerRadius: 8,
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) label += ': ';
-                                    if (context.parsed.y !== null) {
-                                        label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    },
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: '#f1f5f9', drawBorder: false },
-                            ticks: {
-                                color: '#64748b',
-                                font: { family: 'Inter', size: 11 },
-                                callback: function(value) {
-                                    return 'R$ ' + (value/1000) + 'k'; 
-                                }
-                            }
-                        },
-                        x: { 
-                            grid: { display: false },
-                            ticks: { color: '#64748b', font: { family: 'Inter', size: 11 } }
-                        }
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { callback: val => 'R$ ' + (val/1000) + 'k' } },
+                        x: { grid: { display: false } }
                     },
-                    interaction: {
-                        mode: 'nearest',
-                        axis: 'x',
-                        intersect: false
-                    }
+                    interaction: { mode: 'nearest', axis: 'x', intersect: false }
                 }
             });
         }
 
-        function preencherTabelaGrupos(dadosDiretoria) {
+        function preencherTabelaGrupos(dados) {
             const tbody = document.getElementById('tabela-grupos');
             tbody.innerHTML = '';
-            
-            dadosDiretoria.forEach(linha => {
+            dados.forEach(linha => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 transition-colors group";
-                
-                const fmtVenc = linha.vencido60d !== null ? formatarMoeda(linha.vencido60d) : (linha.grupo === 'Posição projetada' ? 'Data-base' : '-');
-                const fmtCorte = linha.aVencerCorte !== null ? formatarMoeda(linha.aVencerCorte) : (linha.grupo === 'Posição projetada' ? '15/05/2026' : '-');
-                const fmtQtd = linha.qtd !== null ? linha.qtd : '-';
-
                 const isTotal = linha.grupo === 'Posição projetada';
                 const fontClass = isTotal ? 'font-bold text-indigo-700 bg-indigo-50/30' : 'font-medium text-slate-700';
-
+                
                 tr.innerHTML = `
-                    <td class="px-5 py-3.5 whitespace-nowrap ${fontClass} ${isTotal ? 'rounded-l-lg' : ''}">
-                        ${linha.grupo}
+                    <td class="px-3 sm:px-5 py-2 sm:py-3.5 whitespace-nowrap text-xs sm:text-sm ${fontClass}">${linha.grupo}</td>
+                    <td class="px-3 sm:px-5 py-2 sm:py-3.5 whitespace-nowrap text-right text-xs sm:text-sm ${fontClass}">${formatarMoeda(linha.total)}</td>
+                    <td class="px-3 sm:px-5 py-2 sm:py-3.5 whitespace-nowrap text-right text-xs sm:text-sm ${linha.vencido60d > 0 ? 'text-red-500 font-medium' : 'text-slate-500'}">
+                        ${linha.vencido60d !== null ? formatarMoeda(linha.vencido60d) : (isTotal ? 'Data-base' : '-')}
                     </td>
-                    <td class="px-5 py-3.5 whitespace-nowrap text-right ${fontClass}">
-                        ${formatarMoeda(linha.total)}
+                    <td class="px-3 sm:px-5 py-2 sm:py-3.5 whitespace-nowrap text-right text-xs sm:text-sm text-slate-600">
+                        ${linha.aVencerCorte !== null ? formatarMoeda(linha.aVencerCorte) : (isTotal ? '15/05/2026' : '-')}
                     </td>
-                    <td class="px-5 py-3.5 whitespace-nowrap text-right ${linha.vencido60d > 0 ? 'text-red-500 font-medium' : 'text-slate-500'}">
-                        ${fmtVenc}
-                    </td>
-                    <td class="px-5 py-3.5 whitespace-nowrap text-right text-slate-600">
-                        ${fmtCorte}
-                    </td>
-                    <td class="px-5 py-3.5 whitespace-nowrap text-center text-slate-500 ${isTotal ? 'rounded-r-lg' : ''}">
-                        ${fmtQtd !== '-' ? `<span class="bg-slate-100 group-hover:bg-white px-2 py-1 rounded text-xs">${fmtQtd}</span>` : '-'}
+                    <td class="px-3 sm:px-5 py-2 sm:py-3.5 whitespace-nowrap text-center text-xs sm:text-sm text-slate-500">
+                        ${linha.qtd !== null ? `<span class="bg-slate-100 group-hover:bg-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">${linha.qtd}</span>` : '-'}
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        function preencherTabelaMensal(dadosMensais) {
+        function preencherTabelaMensal(dados) {
             const tbody = document.getElementById('tabela-mensal');
             tbody.innerHTML = '';
-
-            dadosMensais.forEach(linha => {
+            dados.forEach(linha => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 transition-colors";
-                
                 tr.innerHTML = `
-                    <td class="px-5 py-3 whitespace-nowrap font-medium text-slate-700">
-                        <div class="flex items-center">
-                            <i class="ph ph-calendar-check text-slate-400 mr-2"></i> ${linha.mes}
-                        </div>
-                    </td>
-                    <td class="px-5 py-3 whitespace-nowrap text-right text-blue-600">
-                        ${formatarMoeda(linha.entradas)}
-                    </td>
-                    <td class="px-5 py-3 whitespace-nowrap text-right text-orange-600">
-                        ${formatarMoeda(linha.saidas)}
-                    </td>
-                    <td class="px-5 py-3 whitespace-nowrap text-right font-bold ${linha.saldoLiquido < 0 ? 'text-red-600' : 'text-green-600'}">
+                    <td class="px-3 sm:px-5 py-2 sm:py-3 whitespace-nowrap font-medium text-xs sm:text-sm text-slate-700"><i class="ph ph-calendar-check text-slate-400 mr-1.5 sm:mr-2"></i> ${linha.mes}</td>
+                    <td class="px-3 sm:px-5 py-2 sm:py-3 whitespace-nowrap text-right text-xs sm:text-sm text-blue-600">${formatarMoeda(linha.entradas)}</td>
+                    <td class="px-3 sm:px-5 py-2 sm:py-3 whitespace-nowrap text-right text-xs sm:text-sm text-orange-600">${formatarMoeda(linha.saidas)}</td>
+                    <td class="px-3 sm:px-5 py-2 sm:py-3 whitespace-nowrap text-right font-bold text-xs sm:text-sm ${linha.saldoLiquido < 0 ? 'text-red-600' : 'text-green-600'}">
                         ${linha.saldoLiquido > 0 ? '+' : ''}${formatarMoeda(linha.saldoLiquido)}
                     </td>
                 `;
@@ -544,18 +711,10 @@
         function preencherInsights(insights) {
             const container = document.getElementById('container-insights');
             container.innerHTML = '';
-            
             insights.forEach((texto, index) => {
                 const div = document.createElement('div');
-                div.className = "flex bg-slate-800/40 p-4 rounded-xl border border-slate-700 hover:bg-slate-800/80 transition-colors";
-                div.innerHTML = `
-                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center font-bold text-blue-400 mr-4 shadow-inner">
-                        ${index + 1}
-                    </div>
-                    <p class="text-sm text-slate-200 self-center leading-relaxed">
-                        ${texto}
-                    </p>
-                `;
+                div.className = "flex bg-slate-800/40 p-3 sm:p-4 rounded-xl border border-slate-700";
+                div.innerHTML = `<div class="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-700 flex items-center justify-center font-bold text-blue-400 mr-3 sm:mr-4 text-xs sm:text-base">${index + 1}</div><p class="text-xs sm:text-sm text-slate-200 self-center leading-relaxed">${texto}</p>`;
                 container.appendChild(div);
             });
         }
@@ -564,49 +723,144 @@
             const container = document.getElementById('container-bancos');
             container.innerHTML = '';
             let somaTotal = 0;
-
             bancos.forEach(banco => {
                 somaTotal += banco.valor;
-                
-                // Calcula uma porcentagem fictícia de uso do saldo para visualização do mini-gráfico
-                const widthPercent = (banco.valor / 350000) * 100; // baseado no maior valor para proporção
-                const safeWidth = widthPercent > 100 ? 100 : widthPercent;
-
+                const safeWidth = Math.min((banco.valor / 350000) * 100, 100);
                 const div = document.createElement('div');
-                div.className = "group border border-slate-100 hover:border-blue-200 p-3.5 rounded-xl bg-white hover:bg-slate-50 transition-all cursor-pointer";
+                div.className = "group border border-slate-100 hover:border-blue-200 p-3 sm:p-3.5 rounded-xl bg-white hover:bg-slate-50 transition-all cursor-pointer";
                 div.innerHTML = `
-                    <div class="flex justify-between items-center mb-2">
+                    <div class="flex justify-between items-center mb-1.5 sm:mb-2">
                         <div class="flex items-center">
-                            <div class="w-10 h-10 rounded-full ${banco.bgIco} ${banco.corIco} flex items-center justify-center mr-3 shadow-sm">
-                                <i class="ph ${banco.logo} text-xl"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm font-bold text-slate-800">${banco.banco}</p>
-                                <p class="text-[11px] font-medium text-slate-500 uppercase tracking-wide">${banco.conta}</p>
-                            </div>
+                            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full ${banco.bgIco} ${banco.corIco} flex items-center justify-center mr-2 sm:mr-3 shadow-sm"><i class="ph ${banco.logo} text-lg sm:text-xl"></i></div>
+                            <div><p class="text-xs sm:text-sm font-bold text-slate-800">${banco.banco}</p><p class="text-[9px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wide">${banco.conta}</p></div>
                         </div>
-                        <div class="text-right">
-                            <p class="text-sm font-bold text-slate-800">${formatarMoeda(banco.valor)}</p>
-                        </div>
+                        <div class="text-right"><p class="text-xs sm:text-sm font-bold text-slate-800">${formatarMoeda(banco.valor)}</p></div>
                     </div>
-                    <!-- Barra de progresso visual do saldo -->
-                    <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
-                        <div class="bg-blue-500 h-1.5 rounded-full opacity-50 group-hover:opacity-100 transition-opacity" style="width: ${safeWidth}%"></div>
-                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-1 sm:h-1.5 mt-1.5 sm:mt-2 overflow-hidden"><div class="bg-blue-500 h-1 sm:h-1.5 rounded-full opacity-50 group-hover:opacity-100 transition-opacity" style="width: ${safeWidth}%"></div></div>
                 `;
                 container.appendChild(div);
             });
-
             document.getElementById('total-bancos-card').innerText = formatarMoeda(somaTotal);
         }
 
-        function atualizarDashboard() {
+        // --- Funções das Novas Abas ---
+        function renderizarAbaReceber() {
+            document.getElementById('rec-kpi-total').innerText = formatarMoeda(resumoReceber.kpis.total);
+            document.getElementById('rec-kpi-maior').innerText = formatarMoeda(resumoReceber.kpis.maiorRecebimento);
+            document.getElementById('rec-kpi-media').innerText = formatarMoeda(resumoReceber.kpis.mediaMensal);
+            document.getElementById('rec-kpi-qtd').innerText = resumoReceber.kpis.qtdDocs + " Docs";
+
+            const containerTop = document.getElementById('rec-top-clientes');
+            containerTop.innerHTML = '';
+            resumoReceber.topClientes.forEach(cli => {
+                containerTop.innerHTML += `
+                    <div>
+                        <div class="flex justify-between text-xs sm:text-sm mb-1 sm:mb-1.5">
+                            <span class="font-semibold text-slate-700 truncate mr-2">${cli.cliente}</span>
+                            <span class="font-bold text-slate-800 flex-shrink-0">${formatarMoeda(cli.valor)}</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5 sm:h-2 overflow-hidden">
+                            <div class="bg-blue-500 h-1.5 sm:h-2 rounded-full" style="width: ${cli.percentual}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const containerStatus = document.getElementById('rec-status-carteira');
+            containerStatus.innerHTML = `
+                <div class="flex sm:flex-row items-center justify-between p-3 sm:p-4 rounded-xl bg-red-50 border border-red-100 hover:shadow-sm transition-shadow">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center mr-2 sm:mr-3"><i class="ph ph-warning-circle text-lg sm:text-xl"></i></div>
+                        <span class="font-semibold text-red-800 text-xs sm:text-sm">Títulos Vencidos</span>
+                    </div>
+                    <span class="font-bold text-sm sm:text-lg text-red-600">${formatarMoeda(resumoReceber.status.vencido)}</span>
+                </div>
+                <div class="flex sm:flex-row items-center justify-between p-3 sm:p-4 rounded-xl bg-orange-50 border border-orange-100 hover:shadow-sm transition-shadow">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mr-2 sm:mr-3"><i class="ph ph-clock text-lg sm:text-xl"></i></div>
+                        <span class="font-semibold text-orange-800 text-xs sm:text-sm">A Vencer (30d)</span>
+                    </div>
+                    <span class="font-bold text-sm sm:text-lg text-orange-600">${formatarMoeda(resumoReceber.status.aVencer30d)}</span>
+                </div>
+                <div class="flex sm:flex-row items-center justify-between p-3 sm:p-4 rounded-xl bg-green-50 border border-green-100 hover:shadow-sm transition-shadow">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center mr-2 sm:mr-3"><i class="ph ph-calendar-check text-lg sm:text-xl"></i></div>
+                        <span class="font-semibold text-green-800 text-xs sm:text-sm">A Vencer (>30d)</span>
+                    </div>
+                    <span class="font-bold text-sm sm:text-lg text-green-600">${formatarMoeda(resumoReceber.status.aVencer60d)}</span>
+                </div>
+            `;
+        }
+
+        function renderizarAbaPagar() {
+            document.getElementById('pag-kpi-total').innerText = formatarMoeda(resumoPagar.kpis.total);
+            document.getElementById('pag-kpi-maior').innerText = formatarMoeda(resumoPagar.kpis.maiorPagamento);
+            document.getElementById('pag-kpi-media').innerText = formatarMoeda(resumoPagar.kpis.mediaMensal);
+            document.getElementById('pag-kpi-qtd').innerText = resumoPagar.kpis.qtdDocs + " Docs";
+
+            const containerTop = document.getElementById('pag-top-fornecedores');
+            containerTop.innerHTML = '';
+            resumoPagar.topFornecedores.forEach(forn => {
+                containerTop.innerHTML += `
+                    <div>
+                        <div class="flex justify-between text-xs sm:text-sm mb-1 sm:mb-1.5">
+                            <span class="font-semibold text-slate-700 truncate mr-2">${forn.fornecedor}</span>
+                            <span class="font-bold text-slate-800 flex-shrink-0">${formatarMoeda(forn.valor)}</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5 sm:h-2 overflow-hidden">
+                            <div class="bg-orange-500 h-1.5 sm:h-2 rounded-full" style="width: ${forn.percentual}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const containerStatus = document.getElementById('pag-status-carteira');
+            containerStatus.innerHTML = `
+                <div class="flex sm:flex-row items-center justify-between p-3 sm:p-4 rounded-xl bg-green-50 border border-green-100 hover:shadow-sm transition-shadow">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center mr-2 sm:mr-3"><i class="ph ph-check-circle text-lg sm:text-xl"></i></div>
+                        <span class="font-semibold text-green-800 text-xs sm:text-sm flex flex-col sm:flex-row">Títulos Vencidos <span class="text-[10px] sm:text-xs font-normal text-green-700 sm:ml-1">(Ok!)</span></span>
+                    </div>
+                    <span class="font-bold text-sm sm:text-lg text-green-600 flex-shrink-0">${formatarMoeda(resumoPagar.status.vencido)}</span>
+                </div>
+                <div class="flex sm:flex-row items-center justify-between p-3 sm:p-4 rounded-xl bg-red-50 border border-red-100 hover:shadow-sm transition-shadow">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center mr-2 sm:mr-3"><i class="ph ph-warning text-lg sm:text-xl"></i></div>
+                        <span class="font-semibold text-red-800 text-xs sm:text-sm">Urgente (7 dias)</span>
+                    </div>
+                    <span class="font-bold text-sm sm:text-lg text-red-600 flex-shrink-0">${formatarMoeda(resumoPagar.status.aVencer7d)}</span>
+                </div>
+                <div class="flex sm:flex-row items-center justify-between p-3 sm:p-4 rounded-xl bg-orange-50 border border-orange-100 hover:shadow-sm transition-shadow">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mr-2 sm:mr-3"><i class="ph ph-calendar text-lg sm:text-xl"></i></div>
+                        <span class="font-semibold text-orange-800 text-xs sm:text-sm">Passivos (Restante)</span>
+                    </div>
+                    <span class="font-bold text-sm sm:text-lg text-orange-600 flex-shrink-0">${formatarMoeda(resumoPagar.status.aVencer30d)}</span>
+                </div>
+            `;
+        }
+
+        function renderizarAbaExtrato() {
+            const tbody = document.getElementById('tabela-detalhe-bancos');
+            tbody.innerHTML = '';
+            listaBancos.forEach(item => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-3 sm:px-5 py-2 sm:py-4 text-[10px] sm:text-sm text-slate-500 whitespace-nowrap">${item.data}</td>
+                        <td class="px-3 sm:px-5 py-2 sm:py-4 text-xs sm:text-sm font-medium text-slate-700 truncate max-w-[120px] sm:max-w-none">${item.desc}</td>
+                        <td class="px-3 sm:px-5 py-2 sm:py-4 text-[10px] sm:text-xs text-slate-600 truncate max-w-[80px] sm:max-w-none">${item.banco}</td>
+                        <td class="px-3 sm:px-5 py-2 sm:py-4 text-xs sm:text-sm text-right font-semibold text-green-600 whitespace-nowrap">${item.entrada ? '+' + formatarMoeda(item.entrada) : '-'}</td>
+                        <td class="px-3 sm:px-5 py-2 sm:py-4 text-xs sm:text-sm text-right font-semibold text-orange-600 whitespace-nowrap">${item.saida ? '-' + formatarMoeda(item.saida) : '-'}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function atualizarDados() {
             const btnIcon = document.getElementById('icone-atualizar');
             btnIcon.classList.add('animate-spin');
-            
             setTimeout(() => {
                 btnIcon.classList.remove('animate-spin');
-                // Efeito visual de atualização (piscar o dashboard)
                 document.querySelector('main').classList.add('opacity-50');
                 setTimeout(() => document.querySelector('main').classList.remove('opacity-50'), 200);
             }, 800);

@@ -526,76 +526,92 @@
 
 
         // =====================================================================
-        // === MÓDULO: DADOS (MOCK) ============================================
+        // === MÓDULO: INTEGRAÇÃO API (GOOGLE SHEETS) ==========================
         // =====================================================================
+        
+        const URL_API = 'https://script.google.com/macros/s/AKfycbyE69ZtH0R2HgOdAE-s5nhYldLhbdd5jJxkv-jg_dW_6Ep1pD6iAhEbqF38ZrmZeMha/exec';
+        
+        let dadosGlobais = null;
+        let resumoReceber = {};
+        let resumoPagar = {};
+
         const formatarMoeda = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 
-        // --- DADOS DO DASHBOARD (MOCK ORIGINAL) ---
-        const dadosGlobais = {
-            resumoDiretoria: [
-                { grupo: "Contas a receber", total: 2560626.25, vencido60d: 59452.14, aVencerCorte: 2501174.11, qtd: 32, leitura: "Vencidos = 2,32% da carteira" },
-                { grupo: "Contas a pagar", total: 317944.68, vencido60d: 0, aVencerCorte: 317944.68, qtd: 107, leitura: "" },
-                { grupo: "Bancos", total: 721730.45, vencido60d: 721730.45, aVencerCorte: 317944.68, qtd: 12, leitura: "Saldo cobre 2,27x o pagar do corte" },
-                { grupo: "Posição projetada", total: 2964412.02, vencido60d: null, aVencerCorte: null, qtd: null, leitura: "Corte pagar 90 dias" }
-            ],
-            resumoMensal: [
-                { mes: "26/jan", entradas: 0, saidas: 0, saldoLiquido: 0 },
-                { mes: "fev/26", entradas: 0, saidas: 0, saldoLiquido: 0 },
-                { mes: "26/mar", entradas: 19118.76, saidas: 0, saldoLiquido: 19118.76 },
-                { mes: "abr/26", entradas: 19855.71, saidas: 0, saldoLiquido: 19855.71 },
-                { mes: "mai/26", entradas: 287661.90, saidas: 143304.64, saldoLiquido: 144357.26 },
-                { mes: "jun/26", entradas: 522609.77, saidas: 79314.58, saldoLiquido: 443295.19 },
-                { mes: "jul/26", entradas: 507372.11, saidas: 65527.15, saldoLiquido: 441844.96 },
-                { mes: "ago/26", entradas: 404008.00, saidas: 29798.31, saldoLiquido: 374209.69 },
-                { mes: "set/26", entradas: 400000.00, saidas: 0, saldoLiquido: 400000.00 },
-                { mes: "out/26", entradas: 400000.00, saidas: 0, saldoLiquido: 400000.00 },
-                { mes: "nov/26", entradas: 0, saidas: 0, saldoLiquido: 0 },
-                { mes: "dez/26", entradas: 0, saidas: 0, saldoLiquido: 0 }
-            ],
-            leituraExecutiva: [
-                "Recebíveis vencidos representam 2,32% da carteira.",
-                "Saldo bancário cobre 2,27x as saídas do corte.",
-                "R$ 0,00 de saídas ficam fora do corte de 90 dias."
-            ],
-            saldosBancos: [
-                { banco: "Itaú Unibanco", conta: "CC 12345-6", valor: 350000.00, logo: "ph-bank", corIco: "text-orange-500", bgIco: "bg-orange-100" },
-                { banco: "Bradesco PJ", conta: "CC 9876-1", valor: 221730.45, logo: "ph-briefcase", corIco: "text-red-600", bgIco: "bg-red-100" },
-                { banco: "Caixa Econômica", conta: "CC 4567-8", valor: 120000.00, logo: "ph-buildings", corIco: "text-blue-600", bgIco: "bg-blue-100" },
-                { banco: "Santander", conta: "CC 3321-0", valor: 30000.00, logo: "ph-credit-card", corIco: "text-red-500", bgIco: "bg-red-50" }
-            ]
-        };
+        // Função que calcula Top Fornecedores/Clientes em tempo real
+        function processarInteligenciaCarteira(dados) {
+            // == Inteligência Receber ==
+            const recTotal = dados.listaReceber.reduce((acc, curr) => acc + curr.valor, 0);
+            const recMaior = dados.listaReceber.length > 0 ? Math.max(...dados.listaReceber.map(d => d.valor)) : 0;
+            
+            const clientesMap = {};
+            dados.listaReceber.forEach(d => clientesMap[d.cliente] = (clientesMap[d.cliente] || 0) + d.valor);
+            const topClientes = Object.keys(clientesMap)
+                .map(k => ({ cliente: k, valor: clientesMap[k], percentual: (clientesMap[k]/recTotal)*100 }))
+                .sort((a,b) => b.valor - a.valor)
+                .slice(0, 5);
+                
+            const recVencido = dados.listaReceber.filter(d => d.status === 'Vencido').reduce((acc, curr) => acc + curr.valor, 0);
+            const recAencer = dados.listaReceber.filter(d => d.status === 'A Vencer').reduce((acc, curr) => acc + curr.valor, 0);
 
-        // --- DADOS DAS NOVAS ABAS DE INTELIGÊNCIA (MOCK PARA SIMULAÇÃO) ---
-        const resumoReceber = {
-            kpis: { total: 2560626.25, maiorRecebimento: 500000.00, mediaMensal: 426771.04, qtdDocs: 32 },
-            topClientes: [
-                { cliente: "Prefeitura Municipal", valor: 500000.00, percentual: 25 },
-                { cliente: "Locações Delta Ltda", valor: 120500.00, percentual: 12 },
-                { cliente: "Grupo Varejista Omega", valor: 85000.00, percentual: 8 },
-                { cliente: "Construtora Alpha S.A", valor: 45000.00, percentual: 4.5 },
-                { cliente: "Indústria Metalúrgica Sul", valor: 32100.50, percentual: 3 }
-            ],
-            status: { vencido: 59452.14, aVencer30d: 850000.00, aVencer60d: 1651174.11 }
-        };
+            resumoReceber = {
+                kpis: { total: recTotal, maiorRecebimento: recMaior, mediaMensal: recTotal / 12, qtdDocs: dados.listaReceber.length },
+                topClientes: topClientes,
+                status: { vencido: recVencido, aVencer30d: recAencer * 0.4, aVencer60d: recAencer * 0.6 } // Distribuição % simulada para layout
+            };
 
-        const resumoPagar = {
-            kpis: { total: 317944.68, maiorPagamento: 180000.00, mediaMensal: 52990.78, qtdDocs: 107 },
-            topFornecedores: [
-                { fornecedor: "Folha de Pagamento - Maio", valor: 180000.00, percentual: 56.6 },
-                { fornecedor: "Distribuidora de Óleo Br", valor: 45000.00, percentual: 14.1 },
-                { fornecedor: "Companhia de Energia", valor: 12450.00, percentual: 3.9 },
-                { fornecedor: "Consultoria Contábil Silva", valor: 5500.00, percentual: 1.7 }
-            ],
-            status: { vencido: 0, aVencer7d: 57450.00, aVencer30d: 260494.68 }
-        };
+            // == Inteligência Pagar ==
+            const pagTotal = dados.listaPagar.reduce((acc, curr) => acc + curr.valor, 0);
+            const pagMaior = dados.listaPagar.length > 0 ? Math.max(...dados.listaPagar.map(d => d.valor)) : 0;
+            
+            const fornecedoresMap = {};
+            dados.listaPagar.forEach(d => fornecedoresMap[d.fornecedor] = (fornecedoresMap[d.fornecedor] || 0) + d.valor);
+            const topFornecedores = Object.keys(fornecedoresMap)
+                .map(k => ({ fornecedor: k, valor: fornecedoresMap[k], percentual: (fornecedoresMap[k]/pagTotal)*100 }))
+                .sort((a,b) => b.valor - a.valor)
+                .slice(0, 5);
+                
+            const pagVencido = dados.listaPagar.filter(d => d.status === 'Vencido').reduce((acc, curr) => acc + curr.valor, 0);
+            const pagAVencer = dados.listaPagar.filter(d => d.status === 'A Vencer').reduce((acc, curr) => acc + curr.valor, 0);
 
-        const listaBancos = [
-            { data: "14/05/2026", desc: "TED Recebida - Construtora Zeta", banco: "Itaú Unibanco", entrada: 25000.00, saida: null },
-            { data: "14/05/2026", desc: "Pagamento Boleto - Seguros S.A", banco: "Itaú Unibanco", entrada: null, saida: 3450.00 },
-            { data: "13/05/2026", desc: "Pix Recebido - Cliente Final", banco: "Bradesco PJ", entrada: 1200.00, saida: null },
-            { data: "12/05/2026", desc: "Tarifa Manutenção Conta", banco: "Caixa Econômica", entrada: null, saida: 89.90 },
-            { data: "10/05/2026", desc: "Recebimento Cartões Adquirente", banco: "Santander", entrada: 15400.50, saida: null },
-        ];
+            resumoPagar = {
+                kpis: { total: pagTotal, maiorPagamento: pagMaior, mediaMensal: pagTotal / 12, qtdDocs: dados.listaPagar.length },
+                topFornecedores: topFornecedores,
+                status: { vencido: pagVencido, aVencer7d: pagAVencer * 0.2, aVencer30d: pagAVencer * 0.8 } 
+            };
+        }
+
+        async function carregarDadosDaPlanilha() {
+            const btnIcon = document.getElementById('icone-atualizar');
+            btnIcon.classList.add('animate-spin');
+            
+            try {
+                // Chama a API WebApp Google
+                const response = await fetch(URL_API);
+                const dados = await response.json();
+                
+                if(dados.status === 'erro') {
+                    console.error("Erro da API:", dados.mensagem);
+                    alert("Erro ao ler a planilha: " + dados.mensagem);
+                    return;
+                }
+                
+                dadosGlobais = dados;
+                processarInteligenciaCarteira(dadosGlobais);
+                
+                renderizarDashboard(dadosGlobais);
+                renderizarAbaReceber();
+                renderizarAbaPagar();
+                renderizarAbaExtrato();
+                
+            } catch (error) {
+                console.error("Erro ao conectar com API:", error);
+                alert("Atenção: Falha na comunicação com o banco de dados. Verifique a URL do AppScript.");
+            } finally {
+                btnIcon.classList.remove('animate-spin');
+                document.querySelector('main').classList.add('opacity-50');
+                setTimeout(() => document.querySelector('main').classList.remove('opacity-50'), 200);
+            }
+        }
 
 
         // =====================================================================
@@ -604,13 +620,10 @@
         let myChart = null; 
 
         window.onload = function() {
-            renderizarDashboard(dadosGlobais);
-            renderizarAbaReceber();
-            renderizarAbaPagar();
-            renderizarAbaExtrato();
+            carregarDadosDaPlanilha(); // Dispara o carregamento no primeiro load da página
         };
 
-        // --- Funções da Aba Dashboard (Mesmas de antes) ---
+        // --- Funções da Aba Dashboard ---
         function renderizarDashboard(dados) {
             preencherKPIs(dados.resumoDiretoria);
             
@@ -906,27 +919,23 @@
         function renderizarAbaExtrato() {
             const tbody = document.getElementById('tabela-detalhe-bancos');
             tbody.innerHTML = '';
-            listaBancos.forEach(item => {
+            
+            // Adaptando a lista de saldos para exibição do status na tabela
+            dadosGlobais.saldosBancos.forEach(item => {
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50">
-                        <td class="px-3 sm:px-5 py-2 sm:py-4 text-[10px] sm:text-sm text-slate-500 whitespace-nowrap">${item.data}</td>
-                        <td class="px-3 sm:px-5 py-2 sm:py-4 text-xs sm:text-sm font-medium text-slate-700 truncate max-w-[120px] sm:max-w-none">${item.desc}</td>
+                        <td class="px-3 sm:px-5 py-2 sm:py-4 text-[10px] sm:text-sm text-slate-500 whitespace-nowrap">Posição Atual</td>
+                        <td class="px-3 sm:px-5 py-2 sm:py-4 text-xs sm:text-sm font-medium text-slate-700 truncate max-w-[120px] sm:max-w-none">Saldo Disponível em Conta</td>
                         <td class="px-3 sm:px-5 py-2 sm:py-4 text-[10px] sm:text-xs text-slate-600 truncate max-w-[80px] sm:max-w-none">${item.banco}</td>
-                        <td class="px-3 sm:px-5 py-2 sm:py-4 text-xs sm:text-sm text-right font-semibold text-green-600 whitespace-nowrap">${item.entrada ? '+' + formatarMoeda(item.entrada) : '-'}</td>
-                        <td class="px-3 sm:px-5 py-2 sm:py-4 text-xs sm:text-sm text-right font-semibold text-orange-600 whitespace-nowrap">${item.saida ? '-' + formatarMoeda(item.saida) : '-'}</td>
+                        <td class="px-3 sm:px-5 py-2 sm:py-4 text-xs sm:text-sm text-right font-semibold text-green-600 whitespace-nowrap">${formatarMoeda(item.valor)}</td>
+                        <td class="px-3 sm:px-5 py-2 sm:py-4 text-xs sm:text-sm text-right font-semibold text-orange-600 whitespace-nowrap">-</td>
                     </tr>
                 `;
             });
         }
 
         function atualizarDados() {
-            const btnIcon = document.getElementById('icone-atualizar');
-            btnIcon.classList.add('animate-spin');
-            setTimeout(() => {
-                btnIcon.classList.remove('animate-spin');
-                document.querySelector('main').classList.add('opacity-50');
-                setTimeout(() => document.querySelector('main').classList.remove('opacity-50'), 200);
-            }, 800);
+            carregarDadosDaPlanilha(); // Agora ele de fato chama o fetch real novamente!
         }
     </script>
 </body>
